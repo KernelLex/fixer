@@ -1,8 +1,7 @@
 module Fixer
-import Codeware.*
 
-// What a terminal button asks for. Buttons only RECORD a request; the tick carries it out (docs/fixer-guide.md §4.2: a menu is a
-// paused world, and UI callbacks are no place to change saved state).
+// What a terminal button asks for. Buttons only RECORD a request; the tick carries it out (docs/fixer-guide.md §4.2:
+// a menu is a paused world, and UI callbacks are no place to change saved state). Numbers are only used in-session.
 public abstract class FXAction {
   public static func Hire() -> Int32 = 1;
   public static func Pass() -> Int32 = 2;
@@ -14,6 +13,19 @@ public abstract class FXAction {
   public static func DebugStageDown() -> Int32 = 14;
   public static func DebugDump() -> Int32 = 15;
   public static func DebugWipe() -> Int32 = 16;
+  public static func DebugDay() -> Int32 = 17;
+  public static func DebugOffer() -> Int32 = 18;
+  public static func DebugWar() -> Int32 = 19;
+  public static func DinoAccept() -> Int32 = 20;
+  public static func DinoDecline() -> Int32 = 21;
+  public static func RaiseAccept() -> Int32 = 22;
+  public static func RaiseRefuse() -> Int32 = 23;
+  public static func MarkJob() -> Int32 = 24;
+  public static func SetGuard() -> Int32 = 25;        // arg = block, arg2 = member id (0 = none)
+  public static func DebugWin() -> Int32 = 26;
+  public static func DebugResolve() -> Int32 = 27;
+  public static func DebugCrew() -> Int32 = 28;
+  public static func DebugHeat() -> Int32 = 29;
 }
 
 // Remove the first n entries of a queue.
@@ -56,10 +68,17 @@ public class FXFixerSystem extends ScriptableSystem {
   private let m_ticksSincePopup: Int32;
   private let m_requestAction: array<Int32>;
   private let m_requestArg: array<Int32>;
+  private let m_requestArg2: array<Int32>;
+  private let m_orders: array<ref<FXDispatchOrder>>;
   private let m_pages: array<wref<FXTerminalPage>>;
   private let m_dirty: Bool;
   private let m_lastGate: String;
   private let m_openTerminalRequested: Bool;
+  private let m_places: array<ref<FXPlace>>;
+  private let m_placesAge: Int32;
+  private let m_markPin: NewMappinID;
+  private let m_markPinOn: Bool;
+  private let m_markPinJob: Int32;
 
   public static func Get(game: GameInstance) -> ref<FXFixerSystem> {
     let container = GameInstance.GetScriptableSystemsContainer(game);
@@ -71,6 +90,7 @@ public class FXFixerSystem extends ScriptableSystem {
 
   public static func TickSeconds() -> Float = 0.5;
   public static func PopupSpacingTicks() -> Int32 = 10;   // five seconds between popups
+  public static func PlacesRefreshTicks() -> Int32 = 120; // the place list is re-read about once a minute
 
   // ------------------------------------------------------------------ lifecycle
 
@@ -84,6 +104,8 @@ public class FXFixerSystem extends ScriptableSystem {
     this.m_generation += 1;
     this.m_sessionReady = false;
     this.m_ticksSincePopup = FXFixerSystem.PopupSpacingTicks();
+    this.m_markPinOn = false;
+    ArrayClear(this.m_places);
     this.RegisterJournal();
     this.Schedule(this.m_generation, 1.0);
     FXLog("Core", s"Player attached; heartbeat \(this.m_generation) starting.");
@@ -96,6 +118,10 @@ public class FXFixerSystem extends ScriptableSystem {
     ArrayClear(this.m_popupQueue);
     ArrayClear(this.m_requestAction);
     ArrayClear(this.m_requestArg);
+    ArrayClear(this.m_requestArg2);
+    ArrayClear(this.m_orders);
+    ArrayClear(this.m_places);
+    this.m_markPinOn = false;   // map pins don't survive a load; StartSession puts the marked one back
   }
 
   private func Schedule(generation: Int32, delay: Float) -> Void {
@@ -127,7 +153,7 @@ public class FXFixerSystem extends ScriptableSystem {
     this.m_journalRegistered = false;
   }
 
-  // ------------------------------------------------------------------ events (record only)
+  // ------------------------------------------------------------------ events and requests (record only)
 
   protected cb func OnFXJournalState(hash: Uint32, className: CName, notifyOption: JournalNotifyOption, changeType: JournalChangeType) -> Bool {
     if Equals(className, n"gameJournalQuest") {
@@ -146,9 +172,23 @@ public class FXFixerSystem extends ScriptableSystem {
   }
 
   public func Request(action: Int32, arg: Int32) -> Void {
+    this.RequestEx(action, arg, 0);
+  }
+
+  public func RequestEx(action: Int32, arg: Int32, arg2: Int32) -> Void {
     ArrayPush(this.m_requestAction, action);
     ArrayPush(this.m_requestArg, arg);
-    FXLogDebug("UI", s"Request recorded: action \(action), arg \(arg).");
+    ArrayPush(this.m_requestArg2, arg2);
+    FXLogDebug("UI", s"Request recorded: action \(action), args \(arg)/\(arg2).");
+  }
+
+  public func RequestDispatch(jobId: Int32, members: array<Int32>, cut: Int32) -> Void {
+    let order = new FXDispatchOrder();
+    order.jobId = jobId;
+    order.members = members;
+    order.cut = cut;
+    ArrayPush(this.m_orders, order);
+    FXLogDebug("UI", s"Dispatch recorded: job \(jobId), \(ArraySize(members)) member(s), cut \(cut)%.");
   }
 
   public func QueuePopup(messageId: Int32) -> Void {
@@ -163,6 +203,66 @@ public class FXFixerSystem extends ScriptableSystem {
 
   public func RegisterPage(page: ref<FXTerminalPage>) -> Void {
     ArrayPush(this.m_pages, page);
+  }
+
+  // The places known this session, re-read about once a minute (the game adds fast-travel points as V finds them).
+  public func Places() -> array<ref<FXPlace>> {
+    if ArraySize(this.m_places) == 0 || this.m_placesAge >= FXFixerSystem.PlacesRefreshTicks() {
+      this.m_places = FXBuildPlaces(this.GetGameInstance());
+      this.m_placesAge = 0;
+      let withPos = 0;
+      for p in this.m_places {
+        if p.hasPos {
+          withPos += 1;
+        }
+      }
+      FXLogDebug("Map", s"Places re-read: \(ArraySize(this.m_places)) fast-travel points, \(withPos) with a position.");
+    }
+    return this.m_places;
+  }
+
+  // ------------------------------------------------------------------ the map pin for a job ("show on map")
+
+  public func MarkJob(jobId: Int32) -> Void {
+    let game = this.GetGameInstance();
+    let ops = FXOpsBook.Get(game);
+    if !IsDefined(ops) {
+      return;
+    }
+    this.ClearMarkPin();
+    let job = ops.JobById(jobId);
+    if !IsDefined(job) || !job.hasPos || (job.state != FXJobState.Open() && job.state != FXJobState.Running()) {
+      ops.SetMarkedJob(0);
+      return;
+    }
+    let data: MappinData;
+    data.mappinType = t"Mappins.DefaultStaticMappin";
+    data.variant = gamedataMappinVariant.FixerVariant;
+    data.active = true;
+    data.visibleThroughWalls = true;
+    this.m_markPin = GameInstance.GetMappinSystem(game).RegisterMappin(data, Vector4(job.x, job.y, job.z, 1.0));
+    this.m_markPinOn = true;
+    this.m_markPinJob = jobId;
+    ops.SetMarkedJob(jobId);
+    FXLog("Map", s"Job \(jobId) marked on the world map.");
+  }
+
+  public func UnmarkIfJob(jobId: Int32) -> Void {
+    let ops = FXOpsBook.Get(this.GetGameInstance());
+    if IsDefined(ops) && ops.MarkedJob() == jobId {
+      ops.SetMarkedJob(0);
+    }
+    if this.m_markPinOn && this.m_markPinJob == jobId {
+      this.ClearMarkPin();
+    }
+  }
+
+  private func ClearMarkPin() -> Void {
+    if this.m_markPinOn {
+      GameInstance.GetMappinSystem(this.GetGameInstance()).UnregisterMappin(this.m_markPin);
+      this.m_markPinOn = false;
+      this.m_markPinJob = 0;
+    }
   }
 
   // ------------------------------------------------------------------ the tick
@@ -182,11 +282,20 @@ public class FXFixerSystem extends ScriptableSystem {
     }
     if !this.m_sessionReady {
       this.StartSession();
+      if !this.m_sessionReady {
+        return;
+      }
     }
+    this.m_placesAge += 1;
     this.ProcessJournal();
     this.ProcessRequests();
+    if FXResolveDueJobs(game) > 0 {
+      this.m_dirty = true;
+    }
+    FXRecoverCrew(game);
     FXExpireLeads(game);
     this.CheckProgression();
+    this.RunDays();
     this.DeliverPopup();
     this.ProcessTerminalKey();
     this.RefreshPages();
@@ -198,13 +307,17 @@ public class FXFixerSystem extends ScriptableSystem {
     let career = FXCareerBook.Get(game);
     let crew = FXCrewBook.Get(game);
     let inbox = FXInboxBook.Get(game);
-    if !IsDefined(career) || !IsDefined(crew) || !IsDefined(inbox) {
+    let ops = FXOpsBook.Get(game);
+    let war = FXWarBook.Get(game);
+    if !IsDefined(career) || !IsDefined(crew) || !IsDefined(inbox) || !IsDefined(ops) || !IsDefined(war) {
       FXLog("Core", "A saved book is missing: waiting.");
       return;
     }
     career.Migrate();
     crew.Migrate();
     inbox.Migrate();
+    ops.Migrate();
+    war.Migrate();
     career.SetRngState(FXRng.Sanitize(career.GetRngState(), game));
     this.m_sessionReady = true;
     if inbox.Count() == 0 {
@@ -212,7 +325,47 @@ public class FXFixerSystem extends ScriptableSystem {
     }
     // Replayed journal changes from the load are covered by the scan, which runs first.
     FXScanFinishedGigs(game);
-    FXLog("Core", s"Session ready: stage \(career.GetStage()), \(career.GigCount()) gigs on record, \(crew.ActiveRosterSize()) crew, \(inbox.Count()) messages, Street Cred \(FXStreetCred(game)).");
+    if ops.MarkedJob() != 0 {
+      this.MarkJob(ops.MarkedJob());
+    }
+    if career.GetStage() >= FXStage.Partner() && ops.CountByState(FXJobState.Open()) == 0 {
+      FXRefreshBoard(game, "load with an empty board");
+    }
+    FXLog("Core", s"Session ready: stage \(career.GetStage()), \(career.GigCount()) gigs on record, \(crew.ActiveRosterSize()) crew, \(inbox.Count()) messages, \(ops.CountByState(FXJobState.Running())) jobs under way, Street Cred \(FXStreetCred(game)).");
+    this.m_dirty = true;
+  }
+
+  // Daily work for each game day that passed since the last run (at most seven: a long skip shouldn't flood V).
+  private func RunDays() -> Void {
+    let game = this.GetGameInstance();
+    let career = FXCareerBook.Get(game);
+    let today = FXDay(game);
+    let last = career.GetLastDay();
+    if last == 0 || today < last {
+      // First run on this save, or the clock went backwards (an older save state): start counting from today.
+      career.SetLastDay(today);
+      return;
+    }
+    if today == last {
+      return;
+    }
+    let days = Min(today - last, 7);
+    let d = today - days + 1;
+    while d <= today {
+      FXRunDay(game, d);
+      d += 1;
+    }
+    career.SetLastDay(today);
+    this.m_dirty = true;
+  }
+
+  // Debug: run one day's work as if the clock had moved on.
+  public func DebugRunDay() -> Void {
+    let game = this.GetGameInstance();
+    let career = FXCareerBook.Get(game);
+    let day = Max(career.GetLastDay(), FXDay(game)) + 1;
+    FXRunDay(game, day);
+    career.SetLastDay(day);
     this.m_dirty = true;
   }
 
@@ -274,6 +427,7 @@ public class FXFixerSystem extends ScriptableSystem {
       FXSend(game, FXSender.Dino(), FXMsgKind.StageCandidate(), 0, 0);
       this.m_dirty = true;
     }
+    // Stages past Candidate move through Dino (Ops/Dino.reds), never from here.
     // Log what the next stage waits for, only when it changes: no spam, but always an answer to "why not yet".
     let gate = FXNextStepText(game, career);
     if NotEquals(gate, this.m_lastGate) {
@@ -283,21 +437,32 @@ public class FXFixerSystem extends ScriptableSystem {
   }
 
   private func ProcessRequests() -> Void {
-    let n = Min(ArraySize(this.m_requestAction), ArraySize(this.m_requestArg));
-    if n == 0 {
-      return;
-    }
+    let game = this.GetGameInstance();
+    let n = Min(ArraySize(this.m_requestAction), Min(ArraySize(this.m_requestArg), ArraySize(this.m_requestArg2)));
     let i = 0;
-    while i < n && i < ArraySize(this.m_requestAction) && i < ArraySize(this.m_requestArg) {
-      this.Carry(this.m_requestAction[i], this.m_requestArg[i]);
+    while i < n && i < ArraySize(this.m_requestAction) && i < ArraySize(this.m_requestArg) && i < ArraySize(this.m_requestArg2) {
+      this.Carry(this.m_requestAction[i], this.m_requestArg[i], this.m_requestArg2[i]);
       i += 1;
     }
     FXDropFrontInt(this.m_requestAction, i);
     FXDropFrontInt(this.m_requestArg, i);
-    this.m_dirty = true;
+    FXDropFrontInt(this.m_requestArg2, i);
+    let orders = ArraySize(this.m_orders);
+    let k = 0;
+    while k < orders && k < ArraySize(this.m_orders) {
+      FXDispatch(game, this.m_orders[k]);
+      k += 1;
+    }
+    while k > 0 && ArraySize(this.m_orders) > 0 {
+      ArrayErase(this.m_orders, 0);
+      k -= 1;
+    }
+    if n > 0 || orders > 0 {
+      this.m_dirty = true;
+    }
   }
 
-  private func Carry(action: Int32, arg: Int32) -> Void {
+  private func Carry(action: Int32, arg: Int32, arg2: Int32) -> Void {
     let game = this.GetGameInstance();
     switch action {
       case FXAction.Hire():
@@ -311,6 +476,24 @@ public class FXFixerSystem extends ScriptableSystem {
         if IsDefined(inbox) {
           inbox.MarkAllRead();
         }
+        break;
+      case FXAction.DinoAccept():
+        FXAcceptOffer(game);
+        break;
+      case FXAction.DinoDecline():
+        FXDeclineOffer(game, "V said no");
+        break;
+      case FXAction.RaiseAccept():
+        FXAcceptRaise(game);
+        break;
+      case FXAction.RaiseRefuse():
+        FXRefuseRaise(game);
+        break;
+      case FXAction.MarkJob():
+        this.MarkJob(arg);
+        break;
+      case FXAction.SetGuard():
+        FXSetGuard(game, arg, arg2);
         break;
       default:
         FXDebugCarry(game, action, arg);

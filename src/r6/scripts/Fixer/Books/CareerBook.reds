@@ -38,10 +38,11 @@ public class FXCareerBook extends ScriptableSystem {
   private persistent let m_gigFlags: array<Int32>;
   private persistent let m_gigTime: array<Float>;
 
-  // Reserved for Phase 2 (candidacy roll), declared now so adding it later doesn't wipe this book.
+  // The candidacy roll (Phase 2): the last day rolled, failed rolls since the last offer (the pity timer), and the
+  // first day a new offer may come after V declined one.
   private persistent let m_lastRollDay: Int32;
   private persistent let m_failedRolls: Int32;
-  private persistent let m_offerState: Int32;
+  private persistent let m_offerCooldownDay: Int32;
 
   // The last game day the daily work ran for.
   private persistent let m_lastDay: Int32;
@@ -155,10 +156,33 @@ public class FXCareerBook extends ScriptableSystem {
     return count;
   }
 
-  // Phase 2 reserved accessors.
+  // Failed gigs among the last n recorded (the candidacy bonus wants none in the last three).
+  public func FailedInLast(n: Int32) -> Int32 {
+    let total = this.GigCount();
+    let count = 0;
+    let i = Max(0, total - n);
+    while i < total {
+      if (this.m_gigFlags[i] & FXGigFlag.Failed()) != 0 {
+        count += 1;
+      }
+      i += 1;
+    }
+    return count;
+  }
+
+  // ---- Candidacy roll ----
   public func GetLastRollDay() -> Int32 = this.m_lastRollDay;
+  public func SetLastRollDay(day: Int32) -> Void {
+    this.m_lastRollDay = day;
+  }
   public func GetFailedRolls() -> Int32 = this.m_failedRolls;
-  public func GetOfferState() -> Int32 = this.m_offerState;
+  public func SetFailedRolls(n: Int32) -> Void {
+    this.m_failedRolls = Max(0, n);
+  }
+  public func GetOfferCooldownDay() -> Int32 = this.m_offerCooldownDay;
+  public func SetOfferCooldownDay(day: Int32) -> Void {
+    this.m_offerCooldownDay = day;
+  }
 
   // Debug only: forget everything this book holds.
   public func DebugWipe() -> Void {
@@ -169,6 +193,6 @@ public class FXCareerBook extends ScriptableSystem {
     this.m_stageSince = 0.0;
     this.m_lastRollDay = 0;
     this.m_failedRolls = 0;
-    this.m_offerState = 0;
+    this.m_offerCooldownDay = 0;
   }
 }

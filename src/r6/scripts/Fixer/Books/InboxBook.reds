@@ -20,6 +20,32 @@ public abstract class FXMsgKind {
   public static func StageCandidate() -> Int32 = 5;
   public static func RosterFull() -> Int32 = 6;       // A = lead id
   public static func Welcome() -> Int32 = 7;
+  // Phase 2: Dino and the job loop
+  public static func DinoOffer() -> Int32 = 8;
+  public static func DinoOfferAccepted() -> Int32 = 9;
+  public static func DinoOfferDeclined() -> Int32 = 10;
+  public static func JobSuccess() -> Int32 = 11;      // A = reporting member, B = job id
+  public static func JobPartial() -> Int32 = 12;      // A = reporting member, B = job id
+  public static func JobFail() -> Int32 = 13;         // A = reporting member, B = job id
+  public static func JobDisaster() -> Int32 = 14;     // A = reporting member, B = job id
+  public static func MemberRecovered() -> Int32 = 15; // A = member
+  public static func MemberReleased() -> Int32 = 16;  // A = member
+  public static func MemberDeserted() -> Int32 = 17;  // A = member
+  public static func MemberBetrayed() -> Int32 = 18;  // A = member
+  public static func MemberLevelUp() -> Int32 = 19;   // A = member
+  // Phase 3: the war
+  public static func DinoRaise() -> Int32 = 20;       // A = the cut Dino wants
+  public static func DinoWar() -> Int32 = 21;
+  public static func WarBlockTaken() -> Int32 = 22;   // B = block index + 1
+  public static func WarBlockLost() -> Int32 = 23;    // B = block index + 1
+  public static func WarAmbush() -> Int32 = 24;       // A = member, B = FXCasualty
+  public static func WarBlockDefended() -> Int32 = 25; // A = guard, B = block index + 1
+  public static func WarPoached() -> Int32 = 26;      // A = member
+  public static func WarTipoff() -> Int32 = 27;
+  public static func DinoDefeated() -> Int32 = 28;
+  // Phase 4: the city board
+  public static func CityBoardOpen() -> Int32 = 29;
+  public static func JobLost() -> Int32 = 30;         // B = job id: nobody left to report
 }
 
 public abstract class FXMsgFlag {
@@ -96,6 +122,18 @@ public class FXInboxBook extends ScriptableSystem {
   public func RefBAt(i: Int32) -> Int32 = this.Valid(i) ? this.m_refB[i] : 0;
   public func FlagsAt(i: Int32) -> Int32 = this.Valid(i) ? this.m_flags[i] : 0;
   public func TimeAt(i: Int32) -> Float = this.Valid(i) ? this.m_time[i] : 0.0;
+
+  // The newest message of a kind, or -1. Only the newest offer carries answer buttons.
+  public func LastIndexOfKind(kind: Int32) -> Int32 {
+    let i = this.Count() - 1;
+    while i >= 0 {
+      if this.m_kind[i] == kind {
+        return i;
+      }
+      i -= 1;
+    }
+    return -1;
+  }
 
   public func UnreadCount() -> Int32 {
     let n = this.Count();

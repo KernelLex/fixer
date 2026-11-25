@@ -46,7 +46,68 @@ public func FXDebugCarry(game: GameInstance, action: Int32, arg: Int32) -> Void 
       career.DebugWipe();
       crew.DebugWipe();
       inbox.DebugWipe();
+      FXOpsBook.Get(game).DebugWipe();
+      FXWarBook.Get(game).DebugWipe();
       FXLog("Debug", "All Fixer state wiped. The load-time scan will recount finished gigs on the next load.");
+      break;
+    case FXAction.DebugDay():
+      FXLog("Debug", "Running one day's work.");
+      system.DebugRunDay();
+      break;
+    case FXAction.DebugOffer():
+      // Straight to Dino's offer, from any stage below his partner.
+      if career.GetStage() < FXStage.Candidate() {
+        career.SetStage(FXStage.Candidate(), FXNow(game));
+      }
+      FXWarBook.Get(game).SetDinoState(FXDinoState.OfferPending(), FXDay(game));
+      FXSend(game, FXSender.Dino(), FXMsgKind.DinoOffer(), 0, 0);
+      FXLog("Debug", "Dino's offer forced.");
+      break;
+    case FXAction.DebugWar():
+      if career.GetStage() < FXStage.Partner() {
+        career.SetStage(FXStage.Partner(), FXNow(game));
+        FXWarBook.Get(game).SetDinoCut(FXSettingsBridge.DinoCut());
+      }
+      FXStartWar(game, "debug");
+      break;
+    case FXAction.DebugWin():
+      let war = FXWarBook.Get(game);
+      if war.DinoState() != FXDinoState.War() {
+        FXLog("Debug", "Win ignored: there is no war.");
+        break;
+      }
+      let b = 0;
+      while b < war.BlockCount() {
+        war.SetBlockHolder(b, FXHolder.V());
+        b += 1;
+      }
+      war.SetStrength(0);
+      FXCheckWarWon(game);
+      break;
+    case FXAction.DebugResolve():
+      let ops = FXOpsBook.Get(game);
+      let now = FXNow(game);
+      let n = ops.JobCount();
+      let i = 0;
+      while i < n {
+        let j = ops.JobAt(i);
+        if j.state == FXJobState.Running() {
+          j.due = now;
+          ops.SaveJob(j);
+        }
+        i += 1;
+      }
+      FXLog("Debug", s"\(FXResolveDueJobs(game)) job(s) finished early.");
+      break;
+    case FXAction.DebugCrew():
+      // Straight onto the roster, cap or not: debug only.
+      let p = FXGeneratePerson(game, crew.NextId(), career.GetStage());
+      crew.AddMember(p, FXNow(game));
+      FXLog("Debug", s"Added \(FXPersonName(p)) to the crew.");
+      break;
+    case FXAction.DebugHeat():
+      FXOpsBook.Get(game).AddHeat(20, 20);
+      FXLog("Debug", "Heat +20 on both tracks.");
       break;
     default:
       FXLog("Debug", s"Unknown action \(action).");
@@ -78,6 +139,20 @@ public func FXDumpState(game: GameInstance) -> Void {
     i += 1;
   }
   FXLog("Debug", s"Inbox: \(inbox.Count()) messages, \(inbox.UnreadCount()) unread");
+  let ops = FXOpsBook.Get(game);
+  let war = FXWarBook.Get(game);
+  if IsDefined(ops) && IsDefined(war) {
+    FXLog("Debug", s"Ops: \(ops.CountByState(FXJobState.Open())) open, \(ops.CountByState(FXJobState.Running())) under way, heat \(ops.HeatNcpd())/\(ops.HeatArasaka()), earned \(ops.TotalEarned()), board day \(ops.BoardDay())");
+    FXLog("Debug", s"Dino: state \(war.DinoState()), cut \(war.DinoCut())%, jobs for him \(war.DinoJobsDone()) (\(war.JobsSinceRaise()) since raise, \(war.Raises()) raises), strength \(war.Strength()), blocks V \(war.BlocksHeldBy(FXHolder.V()))/\(war.BlockCount()), war days \(war.WarDays()); candidacy score \(FXCandidacyScore(game)), chance \(FXCandidacyChance(game))%");
+    let places = FXFixerSystem.Get(game).Places();
+    let withPos = 0;
+    for p in places {
+      if p.hasPos {
+        withPos += 1;
+      }
+    }
+    FXLog("Debug", s"Places: \(ArraySize(places)) fast-travel points known, \(withPos) with a map position.");
+  }
 }
 
 // Which pin variants a fixer board would use. Everything else is only counted.

@@ -96,6 +96,94 @@ public class FXSettings {
   @runtimeProperty("ModSettings.max", "8")
   public let rosterCapEarly: Int32 = 3;
 
+  // ---- Dino ----
+  @runtimeProperty("ModSettings.mod", "Fixer")
+  @runtimeProperty("ModSettings.category", "Dino")
+  @runtimeProperty("ModSettings.displayName", "Days until a guaranteed offer")
+  @runtimeProperty("ModSettings.description", "Once you are a candidate, Dino rolls each day whether to make his offer. After this many failed rolls it comes anyway.")
+  @runtimeProperty("ModSettings.min", "1")
+  @runtimeProperty("ModSettings.max", "30")
+  public let pityDays: Int32 = 7;
+
+  @runtimeProperty("ModSettings.mod", "Fixer")
+  @runtimeProperty("ModSettings.category", "Dino")
+  @runtimeProperty("ModSettings.displayName", "Dino's cut")
+  @runtimeProperty("ModSettings.description", "The share Dino takes off the top of every job he hands you, in percent.")
+  @runtimeProperty("ModSettings.min", "0")
+  @runtimeProperty("ModSettings.max", "60")
+  public let dinoCut: Int32 = 30;
+
+  @runtimeProperty("ModSettings.mod", "Fixer")
+  @runtimeProperty("ModSettings.category", "Dino")
+  @runtimeProperty("ModSettings.displayName", "Jobs before Dino gets greedy")
+  @runtimeProperty("ModSettings.description", "Jobs done for Dino before he raises his cut. Refuse, and it's war.")
+  @runtimeProperty("ModSettings.min", "2")
+  @runtimeProperty("ModSettings.max", "30")
+  public let raiseAfterJobs: Int32 = 6;
+
+  @runtimeProperty("ModSettings.mod", "Fixer")
+  @runtimeProperty("ModSettings.category", "Dino")
+  @runtimeProperty("ModSettings.displayName", "Retaliation chance")
+  @runtimeProperty("ModSettings.description", "During the war, the daily chance in percent that Dino hits back, before his strength is added.")
+  @runtimeProperty("ModSettings.min", "0")
+  @runtimeProperty("ModSettings.max", "100")
+  public let retaliationChance: Int32 = 30;
+
+  // ---- Jobs ----
+  @runtimeProperty("ModSettings.mod", "Fixer")
+  @runtimeProperty("ModSettings.category", "Jobs")
+  @runtimeProperty("ModSettings.displayName", "New jobs per day")
+  @runtimeProperty("ModSettings.description", "Jobs posted to your board each in-game day.")
+  @runtimeProperty("ModSettings.min", "1")
+  @runtimeProperty("ModSettings.max", "8")
+  public let jobsPerDay: Int32 = 3;
+
+  @runtimeProperty("ModSettings.mod", "Fixer")
+  @runtimeProperty("ModSettings.category", "Jobs")
+  @runtimeProperty("ModSettings.displayName", "City jobs on the board")
+  @runtimeProperty("ModSettings.description", "Once you run City Center: how many of the game's own gigs, NCPD jobs, psychos and car jobs your crew can work each day.")
+  @runtimeProperty("ModSettings.min", "0")
+  @runtimeProperty("ModSettings.max", "16")
+  public let siteJobs: Int32 = 8;
+
+  @runtimeProperty("ModSettings.mod", "Fixer")
+  @runtimeProperty("ModSettings.category", "Jobs")
+  @runtimeProperty("ModSettings.displayName", "Pay")
+  @runtimeProperty("ModSettings.description", "Job pay in percent of the default.")
+  @runtimeProperty("ModSettings.min", "25")
+  @runtimeProperty("ModSettings.max", "300")
+  public let payPercent: Int32 = 100;
+
+  @runtimeProperty("ModSettings.mod", "Fixer")
+  @runtimeProperty("ModSettings.category", "Jobs")
+  @runtimeProperty("ModSettings.displayName", "Difficulty")
+  @runtimeProperty("ModSettings.description", "How much crew skill a job needs. Higher means lower odds.")
+  @runtimeProperty("ModSettings.min", "20")
+  @runtimeProperty("ModSettings.max", "80")
+  public let difficultyScale: Int32 = 40;
+
+  @runtimeProperty("ModSettings.mod", "Fixer")
+  @runtimeProperty("ModSettings.category", "Jobs")
+  @runtimeProperty("ModSettings.displayName", "Crew can die")
+  @runtimeProperty("ModSettings.description", "A job gone wrong can kill a crew member. Off, the worst is a stay in hospital or a cell.")
+  public let crewCanDie: Bool = true;
+
+  @runtimeProperty("ModSettings.mod", "Fixer")
+  @runtimeProperty("ModSettings.category", "Jobs")
+  @runtimeProperty("ModSettings.displayName", "Heat fade per day")
+  @runtimeProperty("ModSettings.description", "How much NCPD Heat fades each day (doubled on a day with no jobs sent).")
+  @runtimeProperty("ModSettings.min", "0")
+  @runtimeProperty("ModSettings.max", "20")
+  public let heatDecay: Int32 = 4;
+
+  @runtimeProperty("ModSettings.mod", "Fixer")
+  @runtimeProperty("ModSettings.category", "Jobs")
+  @runtimeProperty("ModSettings.displayName", "Turf income per block")
+  @runtimeProperty("ModSettings.description", "Eddies each held City Center block pays you per day once you run City Center.")
+  @runtimeProperty("ModSettings.min", "0")
+  @runtimeProperty("ModSettings.max", "2000")
+  public let blockIncome: Int32 = 250;
+
   // ---- Debug ----
   @runtimeProperty("ModSettings.mod", "Fixer")
   @runtimeProperty("ModSettings.category", "Debug")
@@ -155,4 +243,15 @@ public abstract class FXSettingsBridge {
   public static func RecruitChance() -> Int32 = Clamp(FXSettingsBridge.Get().recruitChance, 0, 100);
   public static func LeadDays() -> Int32 = Clamp(FXSettingsBridge.Get().leadDays, 1, 14);
   public static func RosterCapEarly() -> Int32 = Clamp(FXSettingsBridge.Get().rosterCapEarly, 1, 8);
+  public static func PityDays() -> Int32 = Clamp(FXSettingsBridge.Get().pityDays, 1, 30);
+  public static func DinoCut() -> Int32 = Clamp(FXSettingsBridge.Get().dinoCut, 0, 60);
+  public static func RaiseAfterJobs() -> Int32 = Clamp(FXSettingsBridge.Get().raiseAfterJobs, 2, 30);
+  public static func RetaliationChance() -> Int32 = Clamp(FXSettingsBridge.Get().retaliationChance, 0, 100);
+  public static func JobsPerDay() -> Int32 = Clamp(FXSettingsBridge.Get().jobsPerDay, 1, 8);
+  public static func SiteJobs() -> Int32 = Clamp(FXSettingsBridge.Get().siteJobs, 0, 16);
+  public static func PayMultiplier() -> Float = Cast<Float>(Clamp(FXSettingsBridge.Get().payPercent, 25, 300)) / 100.0;
+  public static func DifficultyScale() -> Float = Cast<Float>(Clamp(FXSettingsBridge.Get().difficultyScale, 20, 80));
+  public static func CrewCanDie() -> Bool = FXSettingsBridge.Get().crewCanDie;
+  public static func HeatDecay() -> Int32 = Clamp(FXSettingsBridge.Get().heatDecay, 0, 20);
+  public static func BlockIncome() -> Int32 = Clamp(FXSettingsBridge.Get().blockIncome, 0, 2000);
 }

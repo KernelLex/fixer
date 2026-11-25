@@ -31,7 +31,7 @@ public func FXOfferLead(game: GameInstance, gigHash: Int32, reason: String) -> I
     return 0;
   }
   let stage = career.GetStage();
-  let cap = FXRosterCap(stage);
+  let cap = FXRosterCap(game);
   if crew.ActiveRosterSize() >= cap {
     FXLog("Lead", s"No lead (\(reason)): crew is full at \(cap).");
     return 0;
@@ -60,7 +60,7 @@ public func FXHireLead(game: GameInstance, leadId: Int32) -> Bool {
     FXLog("Lead", s"Hire ignored: lead \(leadId) is not open.");
     return false;
   }
-  let cap = FXRosterCap(career.GetStage());
+  let cap = FXRosterCap(game);
   if crew.ActiveRosterSize() >= cap {
     FXLog("Lead", s"Hire refused: crew is full at \(cap).");
     FXSend(game, FXSender.Net(), FXMsgKind.RosterFull(), leadId, 0);

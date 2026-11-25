@@ -20,6 +20,8 @@ public abstract class FXCrewStatus {
   public static func Arrested() -> Int32 = 3;
   public static func Dead() -> Int32 = 4;
   public static func Deserted() -> Int32 = 5;
+  public static func Guarding() -> Int32 = 6;   // holding a turf block in the war (Phase 3)
+  public static func Count() -> Int32 = 7;
 }
 
 public abstract class FXLeadState {
@@ -178,6 +180,62 @@ public class FXCrewBook extends ScriptableSystem {
 
   public func IndexOfMember(id: Int32) -> Int32 {
     return ArrayFindFirst(this.m_id, id);
+  }
+
+  // ---- Per-member fields for the job loop. Every setter bounds-checks; a bad index is a no-op. ----
+  private func ValidMember(i: Int32) -> Bool {
+    return i >= 0 && i < this.RosterSize();
+  }
+
+  public func IdAt(i: Int32) -> Int32 = this.ValidMember(i) ? this.m_id[i] : 0;
+  public func BusyUntilAt(i: Int32) -> Float = this.ValidMember(i) ? this.m_busyUntil[i] : 0.0;
+  public func XpAt(i: Int32) -> Int32 = this.ValidMember(i) ? this.m_xp[i] : 0;
+
+  // Free for a job: idle, alive, here.
+  public func IsAvailableAt(i: Int32) -> Bool {
+    return this.ValidMember(i) && this.m_status[i] == FXCrewStatus.Idle();
+  }
+
+  public func SetStatusAt(i: Int32, status: Int32) -> Void {
+    if this.ValidMember(i) {
+      this.m_status[i] = Clamp(status, 0, FXCrewStatus.Count() - 1);
+    }
+  }
+
+  public func SetBusyUntilAt(i: Int32, t: Float) -> Void {
+    if this.ValidMember(i) {
+      this.m_busyUntil[i] = t;
+    }
+  }
+
+  public func AddLoyaltyAt(i: Int32, delta: Int32) -> Int32 {
+    if !this.ValidMember(i) {
+      return 0;
+    }
+    this.m_loyalty[i] = Clamp(this.m_loyalty[i] + delta, 0, 100);
+    return this.m_loyalty[i];
+  }
+
+  public func AddJobAt(i: Int32) -> Void {
+    if this.ValidMember(i) {
+      this.m_jobs[i] += 1;
+    }
+  }
+
+  // Experience; returns true when it brought a level (level+1, skill up, xp carried over).
+  public func AddXpAt(i: Int32, xp: Int32, skillGain: Int32) -> Bool {
+    if !this.ValidMember(i) || xp <= 0 {
+      return false;
+    }
+    this.m_xp[i] += xp;
+    let needed = this.m_level[i] * 100;
+    if this.m_level[i] < 10 && this.m_xp[i] >= needed {
+      this.m_xp[i] -= needed;
+      this.m_level[i] += 1;
+      this.m_skill[i] = Clamp(this.m_skill[i] + skillGain, 0, 100);
+      return true;
+    }
+    return false;
   }
 
   private func TrimRoster() -> Void {

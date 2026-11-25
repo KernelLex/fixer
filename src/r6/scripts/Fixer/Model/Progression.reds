@@ -1,12 +1,20 @@
 module Fixer
 
-// The stage rules. Read-only over the books: FXFixerSystem.CheckProgression applies them.
+// The stage rules. Read-only over the books: FXFixerSystem.CheckProgression and Ops/Dino.reds apply them.
 
-public func FXRosterCap(stage: Int32) -> Int32 {
-  if stage >= FXStage.Fixer() {
-    return 8;
+// Crew cap: the early cap until V runs City Center, then 8, and 12 while V holds every block (BUILD.md §3.2).
+// The one place the cap is decided: every caller goes through here.
+public func FXRosterCap(game: GameInstance) -> Int32 {
+  let career = FXCareerBook.Get(game);
+  let war = FXWarBook.Get(game);
+  let stage = IsDefined(career) ? career.GetStage() : 0;
+  if stage < FXStage.Fixer() {
+    return FXSettingsBridge.RosterCapEarly();
   }
-  return FXSettingsBridge.RosterCapEarly();
+  if IsDefined(war) && war.BlockCount() > 0 && war.BlocksHeldBy(FXHolder.V()) == war.BlockCount() {
+    return 12;
+  }
+  return 8;
 }
 
 // Gigs that count toward V's name: every district, or City Center only (setting).
@@ -65,8 +73,23 @@ public func FXNextStepText(game: GameInstance, career: ref<FXCareerBook>) -> Str
     }
     return FXTextF(game, "FX-UI-Next-Candidate", [joined]);
   }
+  let war = FXWarBook.Get(game);
   if stage == FXStage.Candidate() {
-    return FXText(game, "FX-UI-Next-Wait");
+    if IsDefined(war) && war.DinoState() == FXDinoState.OfferPending() {
+      return FXText(game, "FX-UI-Next-OfferOpen");
+    }
+    let pity = Max(0, FXSettingsBridge.PityDays() - career.GetFailedRolls());
+    return FXTextF(game, "FX-UI-Next-Wait", [ToString(FXCandidacyChance(game)), ToString(pity)]);
   }
-  return FXText(game, "FX-UI-Next-Later");
+  if stage == FXStage.Partner() && IsDefined(war) {
+    if war.DinoState() == FXDinoState.RaisePending() {
+      return FXText(game, "FX-UI-Next-RaiseOpen");
+    }
+    let left = Max(0, FXSettingsBridge.RaiseAfterJobs() - war.JobsSinceRaise());
+    return FXTextF(game, "FX-UI-Next-Partner", [ToString(left)]);
+  }
+  if stage == FXStage.War() && IsDefined(war) {
+    return FXTextF(game, "FX-UI-Next-War", [ToString(war.BlocksHeldBy(FXHolder.V())), ToString(war.BlockCount()), ToString(war.Strength())]);
+  }
+  return FXText(game, "FX-UI-Next-Fixer");
 }
