@@ -68,6 +68,18 @@ tools/install-dev.ps1  compile-check, then copy the scripts into r6\scripts\Fixe
 Console (CET), if CET finds them: `Game.FixerDump()`, `Game.FixerAddGigs(3)`, `Game.FixerAddCityCenterGigs(3)`,
 `Game.FixerForceLead()`, `Game.FixerStage(1)`, `Game.FixerOpenTerminal()`. The Debug tab does the same and more.
 
+## Releasing
+
+`tools\package.ps1` builds `dist\Fixer-<version>.zip` (the version comes from `Core\Version.reds`). It refuses to
+build unless every localization key has English text, the scripts compile, and no file shipped in an earlier zip is
+missing (`tools\shipped-files.txt`: a shipped `.reds` file is never deleted, only emptied into a stub). The archive's
+root is the game root (`r6/scripts/Fixer/...`, forward slashes), so Vortex installs it as-is and it can also be
+unzipped into the game folder by hand. The file name carries no Nexus mod id: Nexus adds its own once uploaded.
+Player-facing notes go in [CHANGELOG.md](CHANGELOG.md).
+
+Installing a test build with Vortex: Mods → Install From File (or drop the zip on Vortex), enable it, deploy. Don't
+also run `install-dev.ps1`: two copies of the same scripts, one managed and one not, confuse Vortex.
+
 ## Rules this code keeps
 
 The crash and save rules from CyberBane's `STATUS.md` and `docs/fixer-guide.md` §4 apply to every change. In short:
