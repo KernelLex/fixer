@@ -5,7 +5,7 @@ takes over every fixer in Night City, running the business from a map on a compu
 Original brief: [BUILD.md](BUILD.md). Modding guide and crash rules: [docs/fixer-guide.md](docs/fixer-guide.md).
 What could come next: [docs/IDEAS.md](docs/IDEAS.md).
 
-**Status: 0.3.0, Dex's book and all seven fixers built and compile-checked (alone, with Browser Extension Framework, and with every script
+**Status: 0.4.0, phone threads and the game-styled terminal on top of Dex's book and all seven fixers, built and compile-checked (alone, with Browser Extension Framework, and with every script
 mod on the dev machine). Nothing is tested in game yet.**
 
 ## Requirements
@@ -44,9 +44,14 @@ tools/install-dev.ps1  compile-check, then copy the scripts into r6\scripts\Fixe
    `ImmersiveVDialogueExpanded` calls `LogChannel`, which doesn't exist on 2.50. Until that mod is updated or
    removed, **no** script mod loads, Fixer included (see `r6\logs\redscript_rCURRENT.log`).
 2. Run `tools\install-dev.ps1`. Launch, load a save.
-3. Check `gamelog.log` for `[Fixer][Core] Fixer 0.3.0 loaded.`, then `Session ready: ...` with the number of gigs found.
-4. A "FIXER//NET: Terminal online" text popup should appear within seconds. **[VERIFY]** If no popup shows but the
-   inbox has the message, the popup route doesn't reach the game's notification queue: tell me.
+3. Check `gamelog.log` for `[Fixer][Core] Fixer 0.4.0 loaded.`, then `Session ready: ...` with the number of gigs found.
+4. A "FIXER//NET: Terminal online" text popup should appear within seconds, in the game's own text popup.
+   **[VERIFY]** it shows, and its open button opens the phone on the FIXER//NET thread.
+   **Phone:** open the phone's messages. Fixer's threads sit in the list with the game's (Dex's old line, each fixer
+   who has texted, each person asking for work). Open one: the messages are there in order. A recruit's thread offers
+   two replies (hire / pass), a fixer who reached out offers ally / take their turf. Pick one: V's reply appears and
+   the answer is carried out on the next heartbeat, the same as the terminal's buttons. **[VERIFY]** the game's own
+   threads (and Cyberbane's, if installed) still open normally after you've opened one of ours.
 5. Press **F7**: the terminal opens. Check the mouse works, the tabs switch and Esc closes it. Status should show your
    finished gig count and City Center count. Compare them with the quest log.
 6. Turn on **Mod Settings → Fixer → Debug mode**: a DEBUG tab appears. Press **DUMP TO LOG** and send me
@@ -65,8 +70,11 @@ tools/install-dev.ps1  compile-check, then copy the scripts into r6\scripts\Fixe
 10. **Taken turf.** Once a war is won, the game's own gigs, NCPD jobs, psychos and car jobs on that turf show as
     orange/blue/pink/green/cyan pins for your crew, and NEXT DAY pays turf income (OPS ledger). Every fixer allied or
     beaten: a "King of Night City" text.
-11. With Browser Extension Framework installed: open V's apartment computer → Internet. A FIXER//NET tile should be on
-    the home page. **[VERIFY]** the tile icon, the page size, and that buttons and pins click.
+11. **The computer site.** Install Browser Extension Framework 0.9.7 (Nexus 10038) with Vortex like any mod; it is
+    pure redscript. Open V's apartment computer → Internet. A FIXER//NET tile with the game's fixer symbol should be
+    on the home page. Open it: the page should look like the game's own menus (red text, blue for what's yours or
+    selected, the game's button frames lighting blue on hover). **[VERIFY]** the tile icon at that size, the page
+    size, and that buttons and pins click.
 
 Console (CET), if CET finds them: `Game.FixerDump()`, `Game.FixerAddGigs(3)`, `Game.FixerAddCityCenterGigs(3)`,
 `Game.FixerForceLead()`, `Game.FixerStage(1)`, `Game.FixerOpenTerminal()`. The Debug tab does the same and more.

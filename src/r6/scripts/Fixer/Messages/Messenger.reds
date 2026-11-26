@@ -14,8 +14,15 @@ public func FXSend(game: GameInstance, sender: Int32, kind: Int32, refA: Int32, 
   FXLog("Msg", s"Message \(id) queued: kind \(kind), sender \(sender), refs \(refA)/\(refB).");
   let system = FXFixerSystem.Get(game);
   if IsDefined(system) {
-    system.QueuePopup(id);
+    // V's own replies are already on V's screen: no popup for them.
+    if sender != FXSender.V() {
+      system.QueuePopup(id);
+    }
     system.MarkDirty();
+  }
+  let i = inbox.IndexOf(id);
+  if i >= 0 {
+    FXPhoneRefresh(game, FXThreadHash(FXThreadKeyAt(inbox, i)));
   }
   return id;
 }

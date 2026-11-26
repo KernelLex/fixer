@@ -22,6 +22,12 @@ public class FXSettings {
 
   @runtimeProperty("ModSettings.mod", "Fixer")
   @runtimeProperty("ModSettings.category", "General")
+  @runtimeProperty("ModSettings.displayName", "Texts in your phone")
+  @runtimeProperty("ModSettings.description", "Fixer's texts appear as threads in your phone's Messages, with Dex's and the fixers' faces, and you answer recruits and fixers right there. Off, they only go to the terminal's inbox.")
+  public let phoneThreads: Bool = true;
+
+  @runtimeProperty("ModSettings.mod", "Fixer")
+  @runtimeProperty("ModSettings.category", "General")
   @runtimeProperty("ModSettings.displayName", "Remote terminal")
   @runtimeProperty("ModSettings.description", "Open the Fixer terminal anywhere with a key. Off, you run the business from a computer with Internet (needs Browser Extension Framework). Without that framework the key always works.")
   public let remoteTerminal: Bool = false;

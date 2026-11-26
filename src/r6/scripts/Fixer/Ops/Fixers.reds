@@ -4,9 +4,12 @@ module Fixer
 // takes their turf in a war. Every fixer is a story character: none is ever spawned, harmed or ordered. Alliances and
 // wars are fought between businesses, as data, and their own gig calls keep coming as the game wrote them.
 //
-// "All their gigs" (the user's rule): the game's own completion reward for the district decides when the journal has
-// one; otherwise every one of their gigs the journal lists must be finished (failed ones count, so a failed gig never
-// locks V out). The share is a setting, 100% by default.
+// "All their gigs", in order of authority:
+//  1. the game's own counter: the fixer's counter fact (e.g. wat_sts_counter) has reached their gig total
+//     (amountOfQuests), both from the game's Fixer record (Data/Fixers.reds);
+//  2. without a record, the game's completion reward entry for the district, if the journal has one;
+//  3. otherwise every one of their gigs the journal lists is finished (failed ones count, so a failed gig never locks
+//     V out). The share is a setting, 100% by default.
 
 public class FXFixerProgress {
   public let fixer: Int32;
@@ -14,24 +17,42 @@ public class FXFixerProgress {
   public let finished: Int32;     // succeeded or failed
   public let rewards: Int32;      // completion reward entries found for their district(s)
   public let rewardsDone: Int32;
+  public let counter: Int32;      // the game's gig counter fact for them
+  public let counterTotal: Int32; // their gig total from the game's Fixer record, 0 when there is no record
 
-  public func UsesReward() -> Bool = this.rewards > 0;
+  public func UsesCounter() -> Bool = this.counterTotal > 0;
+  public func UsesReward() -> Bool = !this.UsesCounter() && this.rewards > 0;
 
   public func Complete() -> Bool {
+    if this.UsesCounter() {
+      return this.counter >= this.counterTotal;
+    }
     if this.rewards > 0 {
       return this.rewardsDone == this.rewards;
     }
     return this.total > 0 && this.finished * 100 >= this.total * FXSettingsBridge.FallbackPercent();
   }
+
+  // Done and needed, for the terminal: the game's counter when there is one, else the journal's count.
+  public func Done() -> Int32 = this.UsesCounter() ? this.counter : this.finished;
+  public func Needed() -> Int32 = this.UsesCounter() ? this.counterTotal : this.total;
 }
 
 // Read the journal once for every fixer's progress. Read-only.
 public func FXScanFixers(game: GameInstance) -> array<ref<FXFixerProgress>> {
   let out: array<ref<FXFixerProgress>>;
+  let quests = GameInstance.GetQuestsSystem(game);
   let k = 0;
   while k < FXFixer.Count() {
     let p = new FXFixerProgress();
     p.fixer = k;
+    p.counterTotal = FXFixerGigTotal(k);
+    let counterName = FXFixerCounterName(k);
+    if p.counterTotal > 0 && NotEquals(counterName, n"") && IsDefined(quests) {
+      p.counter = quests.GetFact(counterName);
+    } else {
+      p.counterTotal = 0;
+    }
     ArrayPush(out, p);
     k += 1;
   }
@@ -93,7 +114,7 @@ public func FXCheckFixers(game: GameInstance, reason: String) -> Void {
   for p in progress {
     if war.Rel(p.fixer) == FXRelation.Unknown() && p.Complete() {
       war.SetRel(p.fixer, FXRelation.Ready(), day);
-      FXLog("Fixer", s"Fixer \(p.fixer) is ready (\(reason)): \(p.finished)/\(p.total) gigs, rewards \(p.rewardsDone)/\(p.rewards).");
+      FXLog("Fixer", s"Fixer \(p.fixer) is ready (\(reason)): counter \(p.counter)/\(p.counterTotal), journal \(p.finished)/\(p.total), rewards \(p.rewardsDone)/\(p.rewards).");
       FXSend(game, FXSender.Fixer(), FXMsgKind.FixerReady(), p.fixer, 0);
     }
   }

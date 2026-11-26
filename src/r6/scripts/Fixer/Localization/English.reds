@@ -296,6 +296,13 @@ public class FXEnglish extends ModLocalizationPackage {
     this.Text("FX-Msg-FixerDefeated-0", "{0} is yours. I'm done. For now.");
     this.Text("FX-Msg-FixerAmbush-0", "{1}'s people jumped {0}. {2}");
     this.Text("FX-Msg-King-0", "Every fixer in Night City works with you or answers to you. Nobody runs this city but you.");
+    // 0.4.0: phone threads.
+    this.Text("FX-Sender-V", "V");
+    this.Text("FX-Phone-FixerThread", "{0}");
+    this.Text("FX-Phone-Reply-0", "You're in. Welcome to the crew.");
+    this.Text("FX-Phone-Reply-1", "Not right now. Maybe another time.");
+    this.Text("FX-Phone-Reply-2", "Let's work together.");
+    this.Text("FX-Phone-Reply-3", "Your turf's mine now.");
   }
 }
 

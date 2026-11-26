@@ -39,6 +39,8 @@ public abstract class FXPageAction {
   public static func Deselect() -> Int32 = 111;
 }
 
+// Fixed colours for the map's data marks only (pins, blocks, legend swatches, bars), where the colour is the
+// information. Everything else takes the game's own colours by style (UI/Style.reds).
 public abstract class FXColors {
   public static func Blue() -> HDRColor = HDRColor(0.368627, 0.964706, 1.0, 1.0);
   public static func Red() -> HDRColor = HDRColor(1.1761, 0.3809, 0.3476, 1.0);
@@ -48,14 +50,6 @@ public abstract class FXColors {
   public static func Magenta() -> HDRColor = HDRColor(1.1, 0.3, 0.85, 1.0);
   public static func Sky() -> HDRColor = HDRColor(0.45, 0.65, 1.2, 1.0);
   public static func Cyan() -> HDRColor = HDRColor(0.3, 1.0, 0.95, 1.0);
-  public static func Text() -> HDRColor = HDRColor(0.86, 0.88, 0.90, 1.0);
-  public static func Dim() -> HDRColor = HDRColor(0.50, 0.55, 0.60, 1.0);
-  public static func Faint() -> HDRColor = HDRColor(0.22, 0.26, 0.30, 1.0);
-  public static func Panel() -> HDRColor = HDRColor(0.054902, 0.054902, 0.090196, 1.0);
-  public static func MapBg() -> HDRColor = HDRColor(0.03, 0.04, 0.06, 1.0);
-  public static func Button() -> HDRColor = HDRColor(0.12, 0.10, 0.14, 1.0);
-  public static func ButtonHover() -> HDRColor = HDRColor(0.411765, 0.086275, 0.090196, 1.0);
-  public static func Line() -> HDRColor = HDRColor(0.411765, 0.086275, 0.090196, 1.0);
   public static func White() -> HDRColor = HDRColor(1.0, 1.0, 1.0, 1.0);
 }
 
@@ -120,12 +114,14 @@ public class FXTerminalPage extends IScriptable {
     root.SetName(n"fx_terminal");
     root.SetAnchor(inkEAnchor.Fill);
 
+    // The game's panel: its darkest background, under its cell frame in its red.
     let bg = new inkRectangle();
     bg.SetName(n"fx_bg");
     bg.SetAnchor(inkEAnchor.Fill);
-    bg.SetTintColor(FXColors.Panel());
     bg.SetOpacity(0.94);
+    FXTint(bg, FXInk.Panel());
     bg.Reparent(root);
+    FXFrame(n"fx_frame", n"cell_fg", FXInk.Line(), 0.35).Reparent(root);
 
     let column = new inkVerticalPanel();
     column.SetName(n"fx_column");
@@ -136,9 +132,9 @@ public class FXTerminalPage extends IScriptable {
     let header = new inkHorizontalPanel();
     header.SetName(n"fx_header");
     header.Reparent(column);
-    let title = FXPageText(FXText(this.m_game, "FX-UI-Title"), 56, FXColors.Blue(), n"Semi-Bold");
+    let title = FXPageText(FXText(this.m_game, "FX-UI-Title"), 56, FXInk.Title(), n"Semi-Bold");
     title.Reparent(header);
-    let stageLine = FXPageText("", 34, FXColors.Red(), n"Medium");
+    let stageLine = FXPageText("", 34, FXInk.Head(), n"Medium");
     stageLine.SetMargin(inkMargin(40.0, 18.0, 0.0, 0.0));
     stageLine.Reparent(header);
 
@@ -150,7 +146,8 @@ public class FXTerminalPage extends IScriptable {
     let line = new inkRectangle();
     line.SetName(n"fx_line");
     line.SetSize(Vector2(this.m_width, 3.0));
-    line.SetTintColor(FXColors.Line());
+    line.SetOpacity(0.5);
+    FXTint(line, FXInk.Line());
     line.SetMargin(inkMargin(0.0, 10.0, 0.0, 0.0));
     line.Reparent(column);
 
@@ -220,7 +217,7 @@ public class FXTerminalPage extends IScriptable {
 
     content.RemoveAllChildren();
     if !FXSettingsBridge.Enabled() {
-      FXPageText(FXText(game, "FX-UI-Disabled"), 38, FXColors.Yellow(), n"Medium").Reparent(content);
+      FXPageText(FXText(game, "FX-UI-Disabled"), 38, FXInk.Warn(), n"Medium").Reparent(content);
       return;
     }
     switch this.m_tab {
@@ -259,20 +256,20 @@ public class FXTerminalPage extends IScriptable {
       return;
     }
     let stage = career.GetStage();
-    this.AddLine(content, FXTextF(game, "FX-UI-Stage", [FXStageName(game, stage)]), 42, FXColors.Blue());
-    this.AddLine(content, FXTextF(game, "FX-UI-Gigs", [ToString(FXCountedGigs(career)), ToString(career.CountSucceeded(true)), ToString(career.CountFailed())]), 34, FXColors.Text());
-    this.AddLine(content, FXTextF(game, "FX-UI-StreetCred", [ToString(FXStreetCred(game))]), 34, FXColors.Text());
-    this.AddLine(content, FXTextF(game, "FX-UI-Crew", [ToString(crew.ActiveRosterSize()), ToString(FXRosterCap(game))]), 34, FXColors.Text());
+    this.AddLine(content, FXTextF(game, "FX-UI-Stage", [FXStageName(game, stage)]), 42, FXInk.Head());
+    this.AddLine(content, FXTextF(game, "FX-UI-Gigs", [ToString(FXCountedGigs(career)), ToString(career.CountSucceeded(true)), ToString(career.CountFailed())]), 34, FXInk.Text());
+    this.AddLine(content, FXTextF(game, "FX-UI-StreetCred", [ToString(FXStreetCred(game))]), 34, FXInk.Text());
+    this.AddLine(content, FXTextF(game, "FX-UI-Crew", [ToString(crew.ActiveRosterSize()), ToString(FXRosterCap(game))]), 34, FXInk.Text());
     let war = FXWarBook.Get(game);
     if stage >= FXStage.DexBook() && IsDefined(war) {
-      this.AddLine(content, FXTextF(game, "FX-UI-Territory", [ToString(war.CountRel(FXRelation.Allied())), ToString(war.CountRel(FXRelation.Taken())), ToString(FXFixer.Count()), ToString(war.BlocksHeld(-1, FXHolder.V()))]), 34, FXColors.Text());
+      this.AddLine(content, FXTextF(game, "FX-UI-Territory", [ToString(war.CountRel(FXRelation.Allied())), ToString(war.CountRel(FXRelation.Taken())), ToString(FXFixer.Count()), ToString(war.BlocksHeld(-1, FXHolder.V()))]), 34, FXInk.Text());
     }
     if stage >= FXStage.DexBook() && IsDefined(ops) {
-      this.AddLine(content, FXTextF(game, "FX-UI-Heat", [ToString(ops.HeatNcpd()), ToString(ops.HeatArasaka())]), 34, FXColors.Text());
-      this.AddLine(content, FXTextF(game, "FX-UI-Earned", [FXMoneyText(ops.TotalEarned())]), 34, FXColors.Text());
+      this.AddLine(content, FXTextF(game, "FX-UI-Heat", [ToString(ops.HeatNcpd()), ToString(ops.HeatArasaka())]), 34, FXInk.Text());
+      this.AddLine(content, FXTextF(game, "FX-UI-Earned", [FXMoneyText(ops.TotalEarned())]), 34, FXInk.Text());
     }
-    this.AddLine(content, FXTextF(game, "FX-UI-Next", [FXNextStepText(game, career)]), 34, FXColors.Yellow());
-    this.AddLine(content, FXTextF(game, "FX-UI-Version", [FXVersion()]), 26, FXColors.Dim());
+    this.AddLine(content, FXTextF(game, "FX-UI-Next", [FXNextStepText(game, career)]), 34, FXInk.Warn());
+    this.AddLine(content, FXTextF(game, "FX-UI-Version", [FXVersion()]), 26, FXInk.Dim());
   }
 
   private func BuildInbox(content: ref<inkVerticalPanel>) -> Void {
@@ -284,7 +281,7 @@ public class FXTerminalPage extends IScriptable {
     }
     let count = inbox.Count();
     if count == 0 {
-      this.AddLine(content, FXText(game, "FX-UI-Inbox-Empty"), 34, FXColors.Dim());
+      this.AddLine(content, FXText(game, "FX-UI-Inbox-Empty"), 34, FXInk.Dim());
       return;
     }
     if inbox.UnreadCount() > 0 {
@@ -319,8 +316,8 @@ public class FXTerminalPage extends IScriptable {
     block.SetMargin(inkMargin(0.0, 0.0, 0.0, 20.0));
     block.Reparent(content);
     let head = s"\(FXMessageSender(game, inbox, i))  //  \(FXAgo(game, now - inbox.TimeAt(i)))";
-    FXPageText(head, 28, FXColors.Blue(), n"Medium").Reparent(block);
-    let body = FXPageText(FXMessageBody(game, inbox, i), 32, FXColors.Text(), n"Regular");
+    FXPageText(head, 28, FXInk.Head(), n"Medium").Reparent(block);
+    let body = FXPageText(FXMessageBody(game, inbox, i), 32, FXInk.Text(), n"Regular");
     body.SetWrapping(true, this.m_width);
     body.Reparent(block);
     let kind = inbox.KindAt(i);
@@ -338,12 +335,12 @@ public class FXTerminalPage extends IScriptable {
           this.AddButton(row, FXText(game, "FX-UI-Hire"), FXAction.Hire(), leadId, 200.0, false);
           this.AddButton(row, FXText(game, "FX-UI-Pass"), FXAction.Pass(), leadId, 200.0, false);
           let hoursLeft = Max(0, CeilF((crew.LeadExpiresAt(li) - now) / 3600.0));
-          let wait = FXPageText(FXTextF(game, "FX-UI-Lead-Waiting", [ToString(hoursLeft)]), 26, FXColors.Dim(), n"Regular");
+          let wait = FXPageText(FXTextF(game, "FX-UI-Lead-Waiting", [ToString(hoursLeft)]), 26, FXInk.Dim(), n"Regular");
           wait.SetMargin(inkMargin(20.0, 14.0, 0.0, 0.0));
           wait.Reparent(row);
         } else {
           let key = state == FXLeadState.Hired() ? "FX-UI-Lead-Hired" : (state == FXLeadState.Declined() ? "FX-UI-Lead-Declined" : "FX-UI-Lead-Expired");
-          FXPageText(FXText(game, key), 26, FXColors.Dim(), n"Regular").Reparent(block);
+          FXPageText(FXText(game, key), 26, FXInk.Dim(), n"Regular").Reparent(block);
         }
       }
     }
@@ -370,7 +367,7 @@ public class FXTerminalPage extends IScriptable {
     }
     let n = crew.RosterSize();
     if n == 0 {
-      let empty = FXPageText(FXText(game, "FX-UI-Crew-Empty"), 34, FXColors.Dim(), n"Regular");
+      let empty = FXPageText(FXText(game, "FX-UI-Crew-Empty"), 34, FXInk.Dim(), n"Regular");
       empty.SetWrapping(true, this.m_width);
       empty.Reparent(content);
       return;
@@ -380,7 +377,7 @@ public class FXTerminalPage extends IScriptable {
     while i < n {
       let p = crew.MemberAt(i);
       let status = crew.StatusAt(i);
-      let color = status == FXCrewStatus.Dead() || status == FXCrewStatus.Deserted() ? FXColors.Dim() : FXColors.Text();
+      let color = status == FXCrewStatus.Dead() || status == FXCrewStatus.Deserted() ? FXInk.Dim() : FXInk.Text();
       let statusText = FXStatusName(game, status);
       let until = crew.BusyUntilAt(i);
       if until > now && (status == FXCrewStatus.OnJob() || status == FXCrewStatus.Injured() || status == FXCrewStatus.Arrested()) {
@@ -417,7 +414,7 @@ public class FXTerminalPage extends IScriptable {
     this.AddButton(row3, "+20 HEAT", FXAction.DebugHeat(), 0, 220.0, false);
     this.AddButton(row3, "DUMP TO LOG", FXAction.DebugDump(), 0, 240.0, false);
     this.AddButton(row3, "WIPE ALL", FXAction.DebugWipe(), 0, 220.0, false);
-    let note = FXPageText("Debug actions run on the next heartbeat. NEXT DAY runs a day's work (fixers reaching out, allies, retaliation, heat, turf income, the board) without moving the clock. ALL READY makes every fixer reach out as if you'd done all their gigs. DUMP TO LOG writes every gig, NCPD job and map pin the game knows to gamelog.log.", 26, FXColors.Dim(), n"Regular");
+    let note = FXPageText("Debug actions run on the next heartbeat. NEXT DAY runs a day's work (fixers reaching out, allies, retaliation, heat, turf income, the board) without moving the clock. ALL READY makes every fixer reach out as if you'd done all their gigs. DUMP TO LOG writes every gig, NCPD job and map pin the game knows to gamelog.log.", 26, FXInk.Dim(), n"Regular");
     note.SetWrapping(true, this.m_width);
     note.SetMargin(inkMargin(0.0, 18.0, 0.0, 0.0));
     note.Reparent(content);
@@ -425,35 +422,35 @@ public class FXTerminalPage extends IScriptable {
 
   // ------------------------------------------------------------------ widgets (used by FXMapView too)
 
-  public func AddLine(parent: ref<inkCompoundWidget>, text: String, size: Int32, color: HDRColor) -> Void {
-    this.AddLineW(parent, text, size, color, this.m_width);
+  public func AddLine(parent: ref<inkCompoundWidget>, text: String, size: Int32, role: CName) -> Void {
+    this.AddLineW(parent, text, size, role, this.m_width);
   }
 
-  public func AddLineW(parent: ref<inkCompoundWidget>, text: String, size: Int32, color: HDRColor, width: Float) -> Void {
-    let t = FXPageText(text, size, color, n"Regular");
+  public func AddLineW(parent: ref<inkCompoundWidget>, text: String, size: Int32, role: CName, width: Float) -> Void {
+    let t = FXPageText(text, size, role, n"Regular");
     t.SetWrapping(true, width);
     t.SetMargin(inkMargin(0.0, 0.0, 0.0, 8.0));
     t.Reparent(parent);
   }
 
-  // A button is a canvas named "fxb|action|arg" so the click handler knows what was pressed.
+  // A button is a canvas named "fxb|action|arg|lit" so the click handler knows what was pressed and the hover handler
+  // knows whether it stays lit (selected) when the pointer leaves. It is the game's button: its nine-slice core and
+  // frame, painted in the game's idle and lit colours (FXButtonLook).
   public func AddButton(parent: ref<inkCompoundWidget>, label: String, action: Int32, arg: Int32, width: Float, selected: Bool) -> Void {
     this.AddButtonH(parent, label, action, arg, width, 60.0, selected);
   }
 
   public func AddButtonH(parent: ref<inkCompoundWidget>, label: String, action: Int32, arg: Int32, width: Float, height: Float, selected: Bool) -> Void {
     let button = new inkCanvas();
-    button.SetName(StringToName(s"fxb|\(action)|\(arg)"));
+    let lit = selected ? "1" : "0";
+    button.SetName(StringToName(s"fxb|\(action)|\(arg)|\(lit)"));
     button.SetSize(Vector2(width, height));
     button.SetMargin(inkMargin(0.0, 0.0, 14.0, 6.0));
     button.SetInteractive(true);
-    let bg = new inkRectangle();
-    bg.SetName(n"bg");
-    bg.SetAnchor(inkEAnchor.Fill);
-    bg.SetTintColor(selected ? FXColors.ButtonHover() : FXColors.Button());
-    bg.SetInteractive(false);
-    bg.Reparent(button);
-    let text = FXPageText(label, height >= 56.0 ? 30 : 26, selected ? FXColors.Blue() : FXColors.Red(), n"Semi-Bold");
+    FXFrame(n"bg", n"button_big2_bg", FXButtonLook.Core(selected), 1.0).Reparent(button);
+    FXFrame(n"frame", n"button_big2_fg", FXButtonLook.Frame(selected), 1.0).Reparent(button);
+    let text = FXPageText(label, height >= 56.0 ? 30 : 26, FXButtonLook.Label(selected), n"Semi-Bold");
+    text.SetName(n"label");
     text.SetAnchor(inkEAnchor.Centered);
     text.SetAnchorPoint(Vector2(0.5, 0.5));
     text.SetLetterCase(textLetterCase.UpperCase);
@@ -485,17 +482,18 @@ public class FXTerminalPage extends IScriptable {
   }
 
   protected cb func OnFXHover(evt: ref<inkPointerEvent>) -> Bool {
-    let bg = FXButtonBackground(evt.GetCurrentTarget());
-    if IsDefined(bg) {
-      bg.SetTintColor(FXColors.ButtonHover());
+    let target = evt.GetCurrentTarget();
+    if IsDefined(target) {
+      FXPaintButton(target, true);
+      GameInstance.GetAudioSystem(this.m_game).Play(n"ui_menu_hover");
     }
     return false;
   }
 
   protected cb func OnFXUnhover(evt: ref<inkPointerEvent>) -> Bool {
-    let bg = FXButtonBackground(evt.GetCurrentTarget());
-    if IsDefined(bg) {
-      bg.SetTintColor(FXColors.Button());
+    let target = evt.GetCurrentTarget();
+    if IsDefined(target) {
+      FXPaintButton(target, FXButtonIsLit(target));
     }
     return false;
   }
@@ -619,22 +617,11 @@ public func FXNextFreeMember(game: GameInstance, after: Int32) -> Int32 {
   return 0;
 }
 
-public func FXPageText(text: String, size: Int32, color: HDRColor, style: CName) -> ref<inkText> {
-  let t = new inkText();
-  t.SetFontFamily("base\\gameplay\\gui\\fonts\\raj\\raj.inkfontfamily");
-  t.SetFontStyle(style);
-  t.SetFontSize(size);
-  t.SetTintColor(color);
-  t.SetText(text);
-  return t;
-}
 
-public func FXButtonBackground(button: wref<inkWidget>) -> ref<inkWidget> {
-  let canvas = button as inkCompoundWidget;
-  if !IsDefined(canvas) {
-    return null;
-  }
-  return canvas.GetWidget(n"bg");
+// Whether a button was built selected (the last part of its name).
+public func FXButtonIsLit(button: wref<inkWidget>) -> Bool {
+  let parts = StrSplit(NameToString(button.GetName()), "|");
+  return ArraySize(parts) >= 4 && Equals(parts[3], "1");
 }
 
 // "just now", "5h ago", "2d ago", in game time.

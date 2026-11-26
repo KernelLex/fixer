@@ -180,7 +180,7 @@ public func FXDumpState(game: GameInstance) -> Void {
     }
     let progress = FXScanFixers(game);
     for p in progress {
-      FXLog("Debug", s"Fixer \(p.fixer) journal: \(p.finished)/\(p.total) gigs finished, completion rewards \(p.rewardsDone)/\(p.rewards), complete \(p.Complete())");
+      FXLog("Debug", s"Fixer \(p.fixer): game counter \(NameToString(FXFixerCounterName(p.fixer))) \(p.counter)/\(p.counterTotal), journal \(p.finished)/\(p.total) gigs, completion rewards \(p.rewardsDone)/\(p.rewards), complete \(p.Complete())");
     }
     let places = FXFixerSystem.Get(game).Places();
     let withPos = 0;

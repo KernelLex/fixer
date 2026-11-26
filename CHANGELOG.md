@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.0 (test build)
+
+Fixer's texts live on V's phone now, and the terminal looks like the game. Saves from 0.3.0 carry over as they are.
+
+- Every Fixer text is a real conversation on V's phone: Dex's old line, each fixer, and each person asking for work
+  get their own thread in the messages list, with their face where the game has one. Answer from the phone: hire or
+  pass, ally or take their turf. The terminal's inbox still has everything. (Mod Settings: "Phone threads".)
+- New texts pop up the way the game's own do, and the popup's open button takes you to the thread.
+- "All of a fixer's gigs" now uses the game's own count for each fixer, the same one the game uses for their district
+  reward, so it matches your quest log.
+- The terminal (computer site and F7 popup) now uses the game's own colours, frames, button style and sounds, and the
+  computer's home page shows it with the game's fixer symbol.
+- Fixed: text popups went to a notification queue the game doesn't show texts from, so they could fail to appear.
+
 ## 0.3.0 (test build)
 
 The whole city, not just City Center. Test data from 0.2.0 resets on load (your crew and messages stay); the mod

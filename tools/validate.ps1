@@ -53,7 +53,18 @@ try {
   New-Item -ItemType Directory -Path (Join-Path $scripts 'mod_settings') -Force | Out-Null
   Copy-Item (Join-Path $msDir '*.reds') (Join-Path $scripts 'mod_settings')
   Copy-Item $Source (Join-Path $scripts (Split-Path -Leaf $Source)) -Recurse
-  foreach ($e in $Extra) { Copy-Item $e (Join-Path $scripts (Split-Path -Leaf $e)) -Recurse }
+  # Each extra folder gets its own directory: plugin script folders are all called 'Scripts', so name by the
+  # folder and, while that is taken, by its parent too (ArchiveXL_Scripts, TweakXL_Scripts, ...).
+  $n = 0
+  foreach ($e in $Extra) {
+    $leaf = Split-Path -Leaf $e
+    $dest = Join-Path $scripts $leaf
+    if (Test-Path $dest) {
+      $n += 1
+      $dest = Join-Path $scripts ('{0}_{1}_{2}' -f (Split-Path -Leaf (Split-Path -Parent $e)), $leaf, $n)
+    }
+    Copy-Item $e $dest -Recurse
+  }
 
   $base = Join-Path $sandbox 'base.redscripts'
   $out  = Join-Path $sandbox 'out.redscripts'

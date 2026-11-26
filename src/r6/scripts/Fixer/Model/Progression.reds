@@ -65,8 +65,8 @@ public func FXNextStepText(game: GameInstance, career: ref<FXCareerBook>) -> Str
   let bestLeft = 1000;
   let progress = system.FixerProgress();
   for p in progress {
-    if war.Rel(p.fixer) == FXRelation.Unknown() && p.total > 0 {
-      let left = p.total - p.finished;
+    if war.Rel(p.fixer) == FXRelation.Unknown() && p.Needed() > 0 {
+      let left = p.Needed() - p.Done();
       if left < bestLeft {
         bestLeft = left;
         best = p.fixer;

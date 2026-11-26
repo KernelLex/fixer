@@ -19,10 +19,11 @@ decisions taken since, and it is the plan the code follows. Where they disagree,
 | How the career starts (0.3.0) | **Dex's book.** When "Playing for Time" is done (`q101_done`, the mission where Dex lies dead), Dex's old clients call V: V's first business, jobs anywhere in the city. |
 | Where crew come from | **Finishing gigs.** Every gig V finishes can bring someone looking for work (35%); allies send people too. |
 | The fixers (0.3.0) | **All seven, same rules.** Regina (Watson), Wakako (Westbrook), Dino (City Center), Padre (Heywood), El Capitan (Santo Domingo), Mr. Hands (Pacifica, Dogtown), Dakota (Badlands). Finish **all** of a fixer's gigs and they reach out: **ally** or **take their turf**. |
-| "All of a fixer's gigs" | The game's own `<district>_reward` journal entry when it exists (seen finished on a real save: westbrook, heywood, combat_zone); otherwise every one of their gigs the journal lists (failed count), share adjustable. |
+| "All of a fixer's gigs" (0.4.0) | **The game's own counter.** Each fixer's record (`Character.reggie`, `wakako_okada`, `dyno`, `Padre`, `muamar_reyes`, `mr_hands`, `dakota_smith`) names a fact the game counts their finished gigs in (`factCounterName`) and how many make "all" (`amountOfQuests`), the same numbers the game rewards. Then their `<district>_reward` journal entry; then every one of their gigs the journal lists (failed count), share adjustable. |
 | What an ally gives | Their jobs on V's map (they take a cut), recruits from their streets, less NCPD heat on their turf. V can break it later and go to war. |
 | What taking turf gives | Their blocks pay V daily, the game's own jobs on their turf become crew work, +2 crew slots. |
-| Messages | The game's own **SMS popup, handed over as data**, plus an **inbox** in the terminal where the answers live. Real phone threads later, behind an off switch. |
+| Messages (0.4.0) | **Real phone threads, as data.** Each sender (Dex's old line, each fixer, each recruit) is a contact row in the phone's message list; opening it fills the game's own dialog with our lines and replies (hire/pass, ally/war). New texts raise the game's own text popup from the phone's HUD controller, as it raises its own. Nothing of ours is injected into the game's widgets; the terminal's **inbox** keeps everything. Off switch in Mod Settings. |
+| Terminal look (0.4.0) | **The game's own style.** Colours bound by name from the game's style sheet (`main_colors.inkstyle`), with the roles and button states the game's own script-built menu uses (`browserModsMenu.script`: red text, active blue when hovered or selected); its nine-slice button and cell frames; Rajdhani; its UI sounds. Only map marks keep fixed colours, where the colour is the information. |
 | Story point required? | "Playing for Time" (Dex's death) opens the business. |
 
 ## Career (saved as numbers; never renumber)
@@ -50,7 +51,7 @@ Per fixer (FXWarBook): **still sizing you up** → (all their gigs) **wants an a
 | Fight a fixer | Yes, against their operation | Every fixer is a story character and is never spawned, harmed or ordered. The war is against their people and business. Their vanilla gig calls keep coming; the game owns them. |
 | Dex DeShawn | Hook only | `Character.Dexter` is story-owned (tagged Immortal). The mod reads `q101_done` (Dex is dead) and takes over his clients as data. |
 | Which fixer a gig belongs to | Yes | Gig ids `sts_<district>_...`; the gang-retaliation shards (`sts_dino_gang_..._dtn_03`, `sts_regina_..._kab_02`...) tie each prefix to its fixer. Pacifica is Mr. Hands' by elimination [VERIFY]. |
-| Real phone texts | Hard | `JournalPhoneMessage` is abstract. The SMS **popup** works as data; real threads are deferred. |
+| Real phone texts | Yes, as data (0.4.0) | `JournalPhoneMessage` is abstract, so no journal entries of ours. Instead the phone's own lists take rows of ours: `MessengerUtils.GetSimpleContactDataArray` (contacts), `MessengerDialogViewController` (lines and replies, by its list controllers' data), and our hashes are kept out of the journal writes the game makes when a thread is read. |
 
 ## Phases
 

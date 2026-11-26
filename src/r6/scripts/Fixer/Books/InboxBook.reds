@@ -10,6 +10,7 @@ public abstract class FXSender {
   public static func Net() -> Int32 = 2;      // the fixer network: system notices
   public static func Fixer() -> Int32 = 3;    // one of the city's fixers: ref A is the fixer index (FXFixer)
   public static func DexLine() -> Int32 = 4;  // Dex's old number, now ringing for V
+  public static func V() -> Int32 = 5;        // V's own reply in a phone thread: ref A is the thread key
 }
 
 // Message kinds. Saved: never renumber, only append.
@@ -59,6 +60,7 @@ public abstract class FXMsgKind {
   public static func FixerDefeated() -> Int32 = 38;   // A = fixer
   public static func FixerAmbush() -> Int32 = 39;     // A = member, B = fixer x 10 + FXCasualty
   public static func King() -> Int32 = 40;
+  public static func VReply() -> Int32 = 41;          // A = thread key, B = reply code (FXReply)
 }
 
 public abstract class FXMsgFlag {
@@ -171,6 +173,12 @@ public class FXInboxBook extends ScriptableSystem {
       i += 1;
     }
     return count;
+  }
+
+  public func SetReadAt(i: Int32) -> Void {
+    if this.Valid(i) {
+      this.m_flags[i] = this.m_flags[i] | FXMsgFlag.Read();
+    }
   }
 
   public func MarkAllRead() -> Void {

@@ -192,12 +192,18 @@ public func FXMessageSender(game: GameInstance, inbox: ref<FXInboxBook>, i: Int3
   if sender == FXSender.DexLine() {
     return FXText(game, "FX-Sender-DexLine");
   }
+  if sender == FXSender.V() {
+    return FXText(game, "FX-Sender-V");
+  }
   let p = FXFindPerson(game, inbox.RefAAt(i));
   return FXPersonName(p);
 }
 
 public func FXMessageBody(game: GameInstance, inbox: ref<FXInboxBook>, i: Int32) -> String {
   let kind = inbox.KindAt(i);
+  if kind == FXMsgKind.VReply() {
+    return FXReplyText(game, inbox.RefBAt(i));
+  }
   let variant = Clamp(inbox.VariantAt(i), 0, FXMsgVariants(kind) - 1);
   let key = s"\(FXMsgKey(kind))\(variant)";
   let refA = inbox.RefAAt(i);

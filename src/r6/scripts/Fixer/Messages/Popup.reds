@@ -1,47 +1,22 @@
 module Fixer
 
-// The game's own text-message popup, given our message as DATA. The game's notification queue builds its own
-// 'notification_message' widget from it, exactly as it does for a real text (newHudPhoneGameController.script,
-// PushSMSNotification). Nothing is added to or removed from the game's widget trees by us (crash rule 9).
+// A Fixer text arriving: the game's own text-message popup, raised by the phone's HUD controller the way it raises
+// its own (newHudPhoneGameController.script, PushSMSNotification), given our text as DATA so the game builds its own
+// 'notification_message' widget (UI/PhoneHooks.reds, OnFXPhoneText). Nothing of ours goes into the game's widgets.
 //
-// The event is delivered through UISystem.QueueEvent, the same route Codeware uses to reach PopupsManager.
-// With no journal entry behind it, entryHash and contactHash are 0: the popup shows the unknown-contact avatar and
-// its "open" input has no action attached, so pressing it does nothing.
+// 0.3.0 sent these to the journal notification queue, which is not the controller the game raises texts from; since
+// 0.4.0 they go to the phone, which is also what lets "open" take V to the thread.
+//
+// The popup shows the sender's face when the journal has a contact with the same avatar (the popup only reads the
+// contact's avatar from it); pressing its "open" input opens the phone on Fixer's thread (FXOpenThreadAction).
 
-public class FXTextPopupEvent extends Event {
-  public let title: String;
-  public let text: String;
-  public let thread: Int32;
-}
-
-public func FXShowTextPopup(game: GameInstance, title: String, text: String, messageId: Int32) -> Void {
-  let evt = new FXTextPopupEvent();
-  evt.title = title;
-  evt.text = text;
-  // Popups with the same thread hash merge into one; a hash per message keeps them separate. The high bits keep it
-  // well away from the game's own thread hashes, which are journal path hashes.
-  evt.thread = 2130706432 + messageId;
+public func FXShowTextPopup(game: GameInstance, inbox: ref<FXInboxBook>, i: Int32) -> Void {
+  let key = FXThreadKeyAt(inbox, i);
+  let evt = new FXPhoneTextEvent();
+  evt.title = FXMessageSender(game, inbox, i);
+  evt.text = FXMessageBody(game, inbox, i);
+  evt.threadHash = FXThreadHash(key);
+  evt.contactHash = FXContactHashForAvatar(game, FXThreadAvatar(key));
+  evt.openable = FXPhoneOn();
   GameInstance.GetUISystem(game).QueueEvent(evt);
-}
-
-@addMethod(JournalNotificationQueue)
-protected cb func OnFXTextPopup(evt: ref<FXTextPopupEvent>) -> Bool {
-  if !IsDefined(evt) {
-    return false;
-  }
-  let userData = new PhoneMessageNotificationViewData();
-  userData.title = evt.title;
-  userData.SMSText = evt.text;
-  userData.SMSLocKey = "";
-  userData.threadHash = evt.thread;
-  userData.animation = n"notification_phone_MSG";
-  userData.soundEvent = n"PhoneSmsPopup";
-  userData.soundAction = n"OnOpen";
-  userData.canBeMerged = false;
-  let notification: gameuiGenericNotificationData;
-  notification.time = 6.7;
-  notification.widgetLibraryItemName = n"notification_message";
-  notification.notificationData = userData;
-  this.AddNewNotificationData(notification);
-  return true;
 }

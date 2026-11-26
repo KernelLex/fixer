@@ -29,8 +29,8 @@ public abstract class FXFixersView {
     let left = new inkVerticalPanel();
     left.SetSize(Vector2(560.0, 60.0));
     left.Reparent(row);
-    FXPageText(FXFixerName(game, k), 30, FXColors.Blue(), n"Semi-Bold").Reparent(left);
-    FXPageText(FXFixerTurf(game, k), 22, FXColors.Dim(), n"Regular").Reparent(left);
+    FXPageText(FXFixerName(game, k), 30, FXInk.Head(), n"Semi-Bold").Reparent(left);
+    FXPageText(FXFixerTurf(game, k), 22, FXInk.Dim(), n"Regular").Reparent(left);
 
     let middle = new inkVerticalPanel();
     middle.SetSize(Vector2(470.0, 60.0));
@@ -38,25 +38,25 @@ public abstract class FXFixersView {
     middle.Reparent(row);
     let rel = war.Rel(k);
     let statusKey = s"FX-Rel-\(Clamp(rel, 0, 4))";
-    let statusColor = FXColors.Text();
+    let statusColor = FXInk.Text();
     if rel == FXRelation.Ready() {
-      statusColor = FXColors.Yellow();
+      statusColor = FXInk.Warn();
     }
     if rel == FXRelation.Allied() {
-      statusColor = FXColors.Green();
+      statusColor = FXInk.Good();
     }
     if rel == FXRelation.War() {
-      statusColor = FXColors.Red();
+      statusColor = FXInk.Bad();
     }
     if rel == FXRelation.Taken() {
-      statusColor = FXColors.Blue();
+      statusColor = FXInk.Head();
     }
     FXPageText(FXText(game, statusKey), 26, statusColor, n"Medium").Reparent(middle);
     let detail = "";
     if rel == FXRelation.Unknown() && IsDefined(p) {
       detail = p.UsesReward()
-        ? FXTextF(game, "FX-Fixers-GigsReward", [ToString(p.finished), ToString(p.total)])
-        : FXTextF(game, "FX-Fixers-Gigs", [ToString(p.finished), ToString(p.total)]);
+        ? FXTextF(game, "FX-Fixers-GigsReward", [ToString(p.Done()), ToString(p.Needed())])
+        : FXTextF(game, "FX-Fixers-Gigs", [ToString(p.Done()), ToString(p.Needed())]);
     }
     if rel == FXRelation.War() {
       detail = FXTextF(game, "FX-Fixers-War", [ToString(war.BlocksHeld(k, FXHolder.V())), ToString(war.BlocksOf(k)), ToString(war.Strength(k))]);
@@ -68,7 +68,7 @@ public abstract class FXFixersView {
       detail = FXTextF(game, "FX-Fixers-Taken", [ToString(war.BlocksHeld(k, FXHolder.V()))]);
     }
     if StrLen(detail) > 0 {
-      FXPageText(detail, 22, FXColors.Dim(), n"Regular").Reparent(middle);
+      FXPageText(detail, 22, FXInk.Dim(), n"Regular").Reparent(middle);
     }
 
     let actions = new inkHorizontalPanel();

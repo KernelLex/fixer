@@ -5,9 +5,14 @@ module Fixer
 //               (sts_dino_gang_retaliation_shard_dtn_03, sts_regina_..._kab_02, sts_wakako_..._jpn_12,
 //               sts_padre_..._gle_04, sts_muamar_..._arr_11, sts_dakota_..._ina_03), which ties each prefix to its fixer.
 //               Pacifica (sts_pac_) and Dogtown (sts_ep1_) are Mr. Hands' [VERIFY Pacifica in game].
-//  - rewards:   the journal holds one "<district>_reward" entry per district that the game completes when every gig
-//               there is done (westbrook_reward, heywood_reward and combat_zone_reward seen finished on a real save;
-//               the other names are the same pattern and are only used if the journal has them).
+//  - counters:  the game's own Fixer records (characters/npcs/records/quest/street_stories/street_stories.tweak) carry
+//               each fixer's gig counter fact and how many gigs they have: Padre hey_sts_counter / 11, reggie
+//               wat_sts_counter / 23, wakako_okada wbr_sts_counter / 8, dyno cct_sts_counter / 5, muamar_reyes
+//               std_sts_counter / 11, dakota_smith bls_sts_counter / 9, mr_hands ep1_sts_counter / 10 (Phantom
+//               Liberty). The counter reaching the total is the game's own "every gig done". Read live from TweakDB,
+//               so a patch that adds gigs is followed.
+//  - rewards:   the journal holds "<district>_reward" entries the game completes when a district's gigs are done
+//               (westbrook_reward, heywood_reward, combat_zone_reward seen finished on a real save). Fallback only.
 //  - blocks:    each district's data terms that show on the world map (fasttravel/fasttravelpoints.tweak), up to
 //               eight, spread over its neighbourhoods. Dogtown's only with Phantom Liberty installed.
 // Saved data stores fixer INDICES: never reorder this list, only append.
@@ -21,6 +26,53 @@ public abstract class FXFixer {
   public static func Hands() -> Int32 = 5;     // Pacifica and Dogtown
   public static func Dakota() -> Int32 = 6;    // Badlands
   public static func Count() -> Int32 = 7;
+}
+
+// The game's own Fixer record name for each fixer (TweakDB "Character.<name>"), or "" for none. Mr. Hands' only
+// exists with Phantom Liberty; without it his Pacifica gigs fall back to the journal count. Paths are built from the
+// name with TDBID.Create, which hashes a string exactly as the t"" literal does (debug names aren't in a release game).
+public func FXFixerRecordName(k: Int32) -> String {
+  switch k {
+    case FXFixer.Regina(): return "reggie";
+    case FXFixer.Wakako(): return "wakako_okada";
+    case FXFixer.Dino(): return "dyno";
+    case FXFixer.Padre(): return "Padre";
+    case FXFixer.Capitan(): return "muamar_reyes";
+    case FXFixer.Hands(): return IsEP1() ? "mr_hands" : "";
+    case FXFixer.Dakota(): return "dakota_smith";
+    default: return "";
+  }
+}
+
+// The fixer's gig counter fact and gig total from their record ("" / 0 when there is none).
+public func FXFixerCounterName(k: Int32) -> CName {
+  let name = FXFixerRecordName(k);
+  if StrLen(name) == 0 {
+    return n"";
+  }
+  return TweakDBInterface.GetCName(TDBID.Create("Character." + name + ".factCounterName"), n"");
+}
+
+public func FXFixerGigTotal(k: Int32) -> Int32 {
+  let name = FXFixerRecordName(k);
+  if StrLen(name) == 0 {
+    return 0;
+  }
+  return TweakDBInterface.GetInt(TDBID.Create("Character." + name + ".amountOfQuests"), 0);
+}
+
+// The phone avatar for each fixer (PhoneAvatars in ui/icons/avatars.tweak). Mr. Hands only has a tooltip avatar.
+public func FXFixerAvatar(k: Int32) -> TweakDBID {
+  switch k {
+    case FXFixer.Regina(): return t"PhoneAvatars.Avatar_Regina";
+    case FXFixer.Wakako(): return t"PhoneAvatars.Avatar_Wakako";
+    case FXFixer.Dino(): return t"PhoneAvatars.Avatar_Dino";
+    case FXFixer.Padre(): return t"PhoneAvatars.Avatar_Padre";
+    case FXFixer.Capitan(): return t"PhoneAvatars.Avatar_Muamar";
+    case FXFixer.Hands(): return t"PhoneAvatars.Tooltip_Avatar_Mr_Hands";
+    case FXFixer.Dakota(): return t"PhoneAvatars.Avatar_Dakota";
+    default: return TDBID.None();
+  }
 }
 
 public func FXFixerName(game: GameInstance, k: Int32) -> String = FXText(game, s"FX-Fixer-\(Clamp(k, 0, FXFixer.Count() - 1))");

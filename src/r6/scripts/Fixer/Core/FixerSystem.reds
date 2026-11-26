@@ -25,6 +25,8 @@ public abstract class FXAction {
   public static func FixerWar() -> Int32 = 31;         // arg = fixer
   public static func DebugDex() -> Int32 = 32;
   public static func DebugReady() -> Int32 = 33;       // arg = fixer, or -1 for every fixer
+  public static func PhoneRead() -> Int32 = 34;        // arg = thread key
+  public static func PhoneReply() -> Int32 = 35;       // arg = thread key, arg2 = FXReply code
 }
 
 // Remove the first n entries of a queue.
@@ -485,6 +487,12 @@ public class FXFixerSystem extends ScriptableSystem {
           inbox.MarkAllRead();
         }
         break;
+      case FXAction.PhoneRead():
+        FXPhoneMarkRead(game, arg);
+        break;
+      case FXAction.PhoneReply():
+        FXPhoneAnswer(game, arg, arg2);
+        break;
       case FXAction.FixerAlly():
         FXAllyWith(game, arg);
         break;
@@ -520,7 +528,7 @@ public class FXFixerSystem extends ScriptableSystem {
     if i < 0 {
       return;
     }
-    FXShowTextPopup(game, FXMessageSender(game, inbox, i), FXMessageBody(game, inbox, i), id);
+    FXShowTextPopup(game, inbox, i);
     this.m_ticksSincePopup = 0;
     FXLogDebug("Msg", s"Popup shown for message \(id).");
   }

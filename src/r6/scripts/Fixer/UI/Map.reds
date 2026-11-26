@@ -76,10 +76,12 @@ public abstract class FXMapView {
     let w = FXMapView.MapW();
     let h = FXMapView.MapH();
 
+    // The map's ground and frame are the game's panel colours; only what is drawn on it has colours of ours.
     let bg = new inkRectangle();
     bg.SetAnchor(inkEAnchor.Fill);
-    bg.SetTintColor(FXColors.MapBg());
+    FXTint(bg, n"MainColors.Fullscreen_PrimaryBackgroundDark");
     bg.Reparent(map);
+    FXFrame(n"fx_mapframe", n"cell_fg", FXInk.Line(), 0.35).Reparent(map);
     if !IsDefined(career) || !IsDefined(ops) || !IsDefined(war) || !IsDefined(system) {
       return unplaced;
     }
@@ -129,7 +131,7 @@ public abstract class FXMapView {
       }
     }
     if points == 0 {
-      let msg = FXPageText(FXText(game, "FX-Map-NoData"), 28, FXColors.Dim(), n"Regular");
+      let msg = FXPageText(FXText(game, "FX-Map-NoData"), 28, FXInk.Dim(), n"Regular");
       msg.SetWrapping(true, w - 60.0);
       msg.SetMargin(inkMargin(30.0, 30.0, 0.0, 0.0));
       msg.Reparent(map);
@@ -156,13 +158,15 @@ public abstract class FXMapView {
       vline.SetAnchor(inkEAnchor.TopLeft);
       vline.SetSize(Vector2(1.0, h));
       vline.SetMargin(inkMargin(w * Cast<Float>(g) / 4.0, 0.0, 0.0, 0.0));
-      vline.SetTintColor(FXColors.Faint());
+      vline.SetOpacity(0.5);
+      FXTint(vline, n"MainColors.FaintRed");
       vline.Reparent(map);
       let hline = new inkRectangle();
       hline.SetAnchor(inkEAnchor.TopLeft);
       hline.SetSize(Vector2(w, 1.0));
       hline.SetMargin(inkMargin(0.0, h * Cast<Float>(g) / 4.0, 0.0, 0.0));
-      hline.SetTintColor(FXColors.Faint());
+      hline.SetOpacity(0.5);
+      FXTint(hline, n"MainColors.FaintRed");
       hline.Reparent(map);
       g += 1;
     }
@@ -181,8 +185,8 @@ public abstract class FXMapView {
         dot.SetAnchor(inkEAnchor.TopLeft);
         dot.SetSize(Vector2(size, size));
         dot.SetMargin(inkMargin(px - size / 2.0, py - size / 2.0, 0.0, 0.0));
-        dot.SetTintColor(FXColors.Dim());
         dot.SetOpacity(0.7);
+        FXTint(dot, FXInk.Dim());
         dot.Reparent(map);
         if StrLen(p.districtName) > 0 {
           let k = ArrayFindFirst(districtNames, p.districtName);
@@ -202,7 +206,7 @@ public abstract class FXMapView {
     let d = 0;
     let nd = Min(ArraySize(districtNames), Min(ArraySize(districtX), Min(ArraySize(districtY), ArraySize(districtN))));
     while d < nd {
-      let label = FXPageText(districtNames[d], 20, FXColors.Dim(), n"Medium");
+      let label = FXPageText(districtNames[d], 20, FXInk.Dim(), n"Medium");
       label.SetLetterCase(textLetterCase.UpperCase);
       label.SetAnchor(inkEAnchor.TopLeft);
       label.SetAnchorPoint(Vector2(0.5, 0.5));
@@ -257,7 +261,7 @@ public abstract class FXMapView {
       let py = oy + (maxY - pos.Y) * scale;
       if px >= 0.0 && px <= w && py >= 0.0 && py <= h {
         FXMapView.Square(map, px, py, 12.0, FXColors.Yellow(), 1.0);
-        let you = FXPageText(FXText(game, "FX-Map-You"), 20, FXColors.Yellow(), n"Semi-Bold");
+        let you = FXPageText(FXText(game, "FX-Map-You"), 20, FXInk.Warn(), n"Semi-Bold");
         you.SetAnchor(inkEAnchor.TopLeft);
         you.SetMargin(inkMargin(px + 10.0, py - 14.0, 0.0, 0.0));
         you.Reparent(map);
@@ -310,7 +314,7 @@ public abstract class FXMapView {
     swatch.SetTintColor(color);
     swatch.SetMargin(inkMargin(0.0, 8.0, 6.0, 0.0));
     swatch.Reparent(row);
-    let text = FXPageText(label, 20, FXColors.Dim(), n"Regular");
+    let text = FXPageText(label, 20, FXInk.Dim(), n"Regular");
     text.SetMargin(inkMargin(0.0, 0.0, 16.0, 0.0));
     text.Reparent(row);
   }
@@ -344,26 +348,26 @@ public abstract class FXMapView {
     let war = FXWarBook.Get(game);
     let cw = FXMapView.CardW();
 
-    page.AddLineW(card, FXJobTitle(game, job), 32, FXColors.Blue(), cw);
+    page.AddLineW(card, FXJobTitle(game, job), 32, FXInk.Head(), cw);
     let area = FXPlaceDistrictName(game, job.place);
     let kindLine = FXJobKindLabel(game, job);
     if StrLen(area) > 0 {
       kindLine = s"\(kindLine)  //  \(area)";
     }
-    page.AddLineW(card, kindLine, 24, FXColors.Dim(), cw);
-    page.AddLineW(card, FXTextF(game, "FX-Card-Facts", [ToString(job.difficulty), ToString(job.hours), ToString(job.need)]), 28, FXColors.Text(), cw);
+    page.AddLineW(card, kindLine, 24, FXInk.Dim(), cw);
+    page.AddLineW(card, FXTextF(game, "FX-Card-Facts", [ToString(job.difficulty), ToString(job.hours), ToString(job.need)]), 28, FXInk.Text(), cw);
     let payLine = FXTextF(game, "FX-Card-Pay", [FXMoneyText(job.pay)]);
     let fixerCut = job.kind == FXJobKind.Ally() ? FXSettingsBridge.AllyCut() : job.fixerCut;
     if fixerCut > 0 {
       payLine = s"\(payLine)  //  \(FXTextF(game, "FX-Card-FixerTakes", [FXFixerName(game, job.fixer - 1), ToString(fixerCut)]))";
     }
-    page.AddLineW(card, payLine, 28, FXColors.Text(), cw);
-    page.AddLineW(card, FXTextF(game, "FX-Card-Roles", [FXRoleName(game, FXJobRoleA(job.jobType)), FXRoleName(game, FXJobRoleB(job.jobType))]), 24, FXColors.Dim(), cw);
+    page.AddLineW(card, payLine, 28, FXInk.Text(), cw);
+    page.AddLineW(card, FXTextF(game, "FX-Card-Roles", [FXRoleName(game, FXJobRoleA(job.jobType)), FXRoleName(game, FXJobRoleB(job.jobType))]), 24, FXInk.Dim(), cw);
     let heatLine = FXTextF(game, "FX-Card-Heat", [ToString(FXJobHeat(job.jobType, job.difficulty))]);
     if job.IsArasaka() {
       heatLine = s"\(heatLine)  //  \(FXText(game, "FX-Card-Arasaka"))";
     }
-    page.AddLineW(card, heatLine, 24, job.IsArasaka() ? FXColors.Red() : FXColors.Dim(), cw);
+    page.AddLineW(card, heatLine, 24, job.IsArasaka() ? FXInk.Bad() : FXInk.Dim(), cw);
 
     if job.state == FXJobState.Running() {
       let members = ops.MembersOf(job.id);
@@ -373,10 +377,10 @@ public abstract class FXMapView {
         names = StrLen(names) == 0 ? FXPersonHandle(p) : s"\(names), \(FXPersonHandle(p))";
       }
       let hoursLeft = Max(0, CeilF((job.due - FXNow(game)) / 3600.0));
-      page.AddLineW(card, FXTextF(game, "FX-Card-Running", [names, ToString(hoursLeft)]), 28, FXColors.Yellow(), cw);
-      page.AddLineW(card, FXTextF(game, "FX-Card-Odds", [ToString(RoundF(FXSuccessForJob(game, job, members) * 100.0))]), 28, FXColors.Text(), cw);
+      page.AddLineW(card, FXTextF(game, "FX-Card-Running", [names, ToString(hoursLeft)]), 28, FXInk.Warn(), cw);
+      page.AddLineW(card, FXTextF(game, "FX-Card-Odds", [ToString(RoundF(FXSuccessForJob(game, job, members) * 100.0))]), 28, FXInk.Text(), cw);
     } else {
-      page.AddLineW(card, FXText(game, "FX-Card-Pick"), 24, FXColors.Yellow(), cw);
+      page.AddLineW(card, FXText(game, "FX-Card-Pick"), 24, FXInk.Warn(), cw);
       let shown = 0;
       let free = 0;
       let n = crew.RosterSize();
@@ -395,14 +399,14 @@ public abstract class FXMapView {
         i += 1;
       }
       if free == 0 {
-        page.AddLineW(card, FXText(game, "FX-Card-NobodyFree"), 26, FXColors.Red(), cw);
+        page.AddLineW(card, FXText(game, "FX-Card-NobodyFree"), 26, FXInk.Bad(), cw);
       }
       // Crew cut.
       let cutRow = new inkHorizontalPanel();
       cutRow.SetMargin(inkMargin(0.0, 6.0, 0.0, 0.0));
       cutRow.Reparent(card);
       page.AddButtonH(cutRow, "-", FXPageAction.CutDown(), 0, 56.0, 40.0, false);
-      let cutText = FXPageText(FXTextF(game, "FX-Card-Cut", [ToString(page.Cut())]), 26, FXColors.Text(), n"Medium");
+      let cutText = FXPageText(FXTextF(game, "FX-Card-Cut", [ToString(page.Cut())]), 26, FXInk.Text(), n"Medium");
       cutText.SetMargin(inkMargin(0.0, 6.0, 14.0, 0.0));
       cutText.Reparent(cutRow);
       page.AddButtonH(cutRow, "+", FXPageAction.CutUp(), 0, 56.0, 40.0, false);
@@ -424,11 +428,11 @@ public abstract class FXMapView {
       preview.cut = page.Cut();
       preview.fixerCut = fixerCut;
       if count >= job.need {
-        let color = pct >= 70 ? FXColors.Green() : (pct >= 40 ? FXColors.Yellow() : FXColors.Red());
+        let color = pct >= 70 ? FXInk.Good() : (pct >= 40 ? FXInk.Warn() : FXInk.Bad());
         page.AddLineW(card, FXTextF(game, "FX-Card-Success", [ToString(pct)]), 36, color, cw);
-        page.AddLineW(card, FXTextF(game, "FX-Card-Take", [FXMoneyText(FXVTake(preview, FXOutcome.Success()))]), 24, FXColors.Text(), cw);
+        page.AddLineW(card, FXTextF(game, "FX-Card-Take", [FXMoneyText(FXVTake(preview, FXOutcome.Success()))]), 24, FXInk.Text(), cw);
       } else {
-        page.AddLineW(card, FXTextF(game, "FX-Card-PickMore", [ToString(job.need - count)]), 28, FXColors.Yellow(), cw);
+        page.AddLineW(card, FXTextF(game, "FX-Card-PickMore", [ToString(job.need - count)]), 28, FXInk.Warn(), cw);
       }
       let actions = new inkHorizontalPanel();
       actions.SetMargin(inkMargin(0.0, 6.0, 0.0, 0.0));
@@ -454,15 +458,15 @@ public abstract class FXMapView {
       FXMapView.HelpCard(page, card);
       return;
     }
-    page.AddLineW(card, FXBlockName(game, b), 32, FXColors.Blue(), cw);
-    page.AddLineW(card, FXPlaceDistrictName(game, war.BlockPlace(b)), 24, FXColors.Dim(), cw);
-    page.AddLineW(card, FXTextF(game, "FX-Block-Turf", [FXFixerName(game, war.BlockFixer(b))]), 24, FXColors.Dim(), cw);
+    page.AddLineW(card, FXBlockName(game, b), 32, FXInk.Head(), cw);
+    page.AddLineW(card, FXPlaceDistrictName(game, war.BlockPlace(b)), 24, FXInk.Dim(), cw);
+    page.AddLineW(card, FXTextF(game, "FX-Block-Turf", [FXFixerName(game, war.BlockFixer(b))]), 24, FXInk.Dim(), cw);
     if war.BlockHolder(b) == FXHolder.V() {
-      page.AddLineW(card, FXText(game, "FX-Block-Yours"), 28, FXColors.Blue(), cw);
+      page.AddLineW(card, FXText(game, "FX-Block-Yours"), 28, FXInk.Head(), cw);
       let guard = war.BlockGuard(b);
       let guardName = guard != 0 ? FXPersonName(FXFindPerson(game, guard)) : FXText(game, "FX-Block-NoGuard");
-      page.AddLineW(card, FXTextF(game, "FX-Block-Guard", [guardName]), 28, FXColors.Text(), cw);
-      page.AddLineW(card, FXText(game, "FX-Block-GuardHelp"), 24, FXColors.Dim(), cw);
+      page.AddLineW(card, FXTextF(game, "FX-Block-Guard", [guardName]), 28, FXInk.Text(), cw);
+      page.AddLineW(card, FXText(game, "FX-Block-GuardHelp"), 24, FXInk.Dim(), cw);
       let row = new inkHorizontalPanel();
       row.Reparent(card);
       page.AddButtonH(row, FXText(game, "FX-Block-NextGuard"), FXPageAction.GuardNext(), b, 220.0, 52.0, false);
@@ -470,8 +474,8 @@ public abstract class FXMapView {
         page.AddButtonH(row, FXText(game, "FX-Block-Unguard"), FXPageAction.Unguard(), b, 220.0, 52.0, false);
       }
     } else {
-      page.AddLineW(card, FXTextF(game, "FX-Block-Theirs", [FXFixerName(game, war.BlockFixer(b))]), 28, FXColors.Red(), cw);
-      page.AddLineW(card, FXText(game, "FX-Block-StrikeHelp"), 24, FXColors.Dim(), cw);
+      page.AddLineW(card, FXTextF(game, "FX-Block-Theirs", [FXFixerName(game, war.BlockFixer(b))]), 28, FXInk.Bad(), cw);
+      page.AddLineW(card, FXText(game, "FX-Block-StrikeHelp"), 24, FXInk.Dim(), cw);
     }
   }
 
@@ -482,12 +486,12 @@ public abstract class FXMapView {
     let cw = FXMapView.CardW();
     let stage = IsDefined(career) ? career.GetStage() : 0;
     let key = stage >= FXStage.King() ? "FX-Help-King" : "FX-Help-Dex";
-    page.AddLineW(card, FXText(game, key), 28, FXColors.Text(), cw);
+    page.AddLineW(card, FXText(game, key), 28, FXInk.Text(), cw);
     if IsDefined(ops) {
-      page.AddLineW(card, FXTextF(game, "FX-Help-Counts", [ToString(ops.CountByState(FXJobState.Open())), ToString(ops.CountByState(FXJobState.Running()))]), 26, FXColors.Dim(), cw);
+      page.AddLineW(card, FXTextF(game, "FX-Help-Counts", [ToString(ops.CountByState(FXJobState.Open())), ToString(ops.CountByState(FXJobState.Running()))]), 26, FXInk.Dim(), cw);
     }
     if IsDefined(career) {
-      page.AddLineW(card, FXTextF(game, "FX-UI-Next", [FXNextStepText(game, career)]), 26, FXColors.Yellow(), cw);
+      page.AddLineW(card, FXTextF(game, "FX-UI-Next", [FXNextStepText(game, career)]), 26, FXInk.Warn(), cw);
     }
   }
 
@@ -502,8 +506,8 @@ public abstract class FXMapView {
     }
     FXMapView.HeatBar(page, content, FXText(game, "FX-Ops-HeatNcpd"), ops.HeatNcpd());
     FXMapView.HeatBar(page, content, FXText(game, "FX-Ops-HeatArasaka"), ops.HeatArasaka());
-    page.AddLine(content, FXTextF(game, "FX-UI-Next", [FXNextStepText(game, career)]), 28, FXColors.Yellow());
-    page.AddLine(content, FXTextF(game, "FX-UI-Earned", [FXMoneyText(ops.TotalEarned())]), 28, FXColors.Text());
+    page.AddLine(content, FXTextF(game, "FX-UI-Next", [FXNextStepText(game, career)]), 28, FXInk.Warn());
+    page.AddLine(content, FXTextF(game, "FX-UI-Earned", [FXMoneyText(ops.TotalEarned())]), 28, FXInk.Text());
 
     let row = new inkHorizontalPanel();
     row.SetMargin(inkMargin(0.0, 8.0, 0.0, 0.0));
@@ -515,7 +519,7 @@ public abstract class FXMapView {
     colB.Reparent(row);
 
     // Under way and recent results.
-    page.AddLineW(colA, FXText(game, "FX-Ops-Running"), 28, FXColors.Blue(), 680.0);
+    page.AddLineW(colA, FXText(game, "FX-Ops-Running"), 28, FXInk.Head(), 680.0);
     let now = FXNow(game);
     let shown = 0;
     let n = ops.JobCount();
@@ -524,43 +528,43 @@ public abstract class FXMapView {
       let j = ops.JobAt(i);
       if j.state == FXJobState.Running() && shown < 5 {
         let hoursLeft = Max(0, CeilF((j.due - now) / 3600.0));
-        page.AddLineW(colA, FXTextF(game, "FX-Ops-RunningLine", [FXJobTitle(game, j), ToString(hoursLeft)]), 24, FXColors.Text(), 680.0);
+        page.AddLineW(colA, FXTextF(game, "FX-Ops-RunningLine", [FXJobTitle(game, j), ToString(hoursLeft)]), 24, FXInk.Text(), 680.0);
         shown += 1;
       }
       i += 1;
     }
     if shown == 0 {
-      page.AddLineW(colA, FXText(game, "FX-Ops-None"), 24, FXColors.Dim(), 680.0);
+      page.AddLineW(colA, FXText(game, "FX-Ops-None"), 24, FXInk.Dim(), 680.0);
     }
-    page.AddLineW(colA, FXText(game, "FX-Ops-Results"), 28, FXColors.Blue(), 680.0);
+    page.AddLineW(colA, FXText(game, "FX-Ops-Results"), 28, FXInk.Head(), 680.0);
     shown = 0;
     i = n - 1;
     while i >= 0 && shown < 6 {
       let j = ops.JobAt(i);
       if j.state == FXJobState.Done() {
-        let color = j.outcome == FXOutcome.Success() ? FXColors.Green() : (j.outcome == FXOutcome.Partial() ? FXColors.Yellow() : FXColors.Red());
+        let color = j.outcome == FXOutcome.Success() ? FXInk.Good() : (j.outcome == FXOutcome.Partial() ? FXInk.Warn() : FXInk.Bad());
         page.AddLineW(colA, FXTextF(game, "FX-Ops-ResultLine", [FXJobTitle(game, j), FXOutcomeName(game, j.outcome), FXMoneyText(FXVTake(j, j.outcome))]), 24, color, 680.0);
         shown += 1;
       }
       i -= 1;
     }
     if shown == 0 {
-      page.AddLineW(colA, FXText(game, "FX-Ops-None"), 24, FXColors.Dim(), 680.0);
+      page.AddLineW(colA, FXText(game, "FX-Ops-None"), 24, FXInk.Dim(), 680.0);
     }
 
     // The ledger, newest first.
-    page.AddLineW(colB, FXText(game, "FX-Ops-Ledger"), 28, FXColors.Blue(), 600.0);
+    page.AddLineW(colB, FXText(game, "FX-Ops-Ledger"), 28, FXInk.Head(), 600.0);
     let ln = ops.LedgerCount();
     let k = ln - 1;
     shown = 0;
     while k >= 0 && shown < 8 {
       let kindKey = ops.LedgerKindAt(k) == FXLedgerKind.Turf() ? "FX-Ops-LedgerTurf" : "FX-Ops-LedgerJob";
-      page.AddLineW(colB, FXTextF(game, "FX-Ops-LedgerLine", [ToString(ops.LedgerDayAt(k)), FXText(game, kindKey), FXMoneyText(ops.LedgerAmountAt(k))]), 24, FXColors.Text(), 600.0);
+      page.AddLineW(colB, FXTextF(game, "FX-Ops-LedgerLine", [ToString(ops.LedgerDayAt(k)), FXText(game, kindKey), FXMoneyText(ops.LedgerAmountAt(k))]), 24, FXInk.Text(), 600.0);
       shown += 1;
       k -= 1;
     }
     if shown == 0 {
-      page.AddLineW(colB, FXText(game, "FX-Ops-None"), 24, FXColors.Dim(), 600.0);
+      page.AddLineW(colB, FXText(game, "FX-Ops-None"), 24, FXInk.Dim(), 600.0);
     }
   }
 
@@ -568,7 +572,7 @@ public abstract class FXMapView {
     let row = new inkHorizontalPanel();
     row.SetMargin(inkMargin(0.0, 0.0, 0.0, 8.0));
     row.Reparent(parent);
-    let text = FXPageText(s"\(label)  \(value)/100", 26, FXColors.Text(), n"Medium");
+    let text = FXPageText(s"\(label)  \(value)/100", 26, FXInk.Text(), n"Medium");
     text.SetSize(Vector2(360.0, 34.0));
     text.Reparent(row);
     let bar = new inkCanvas();
@@ -577,7 +581,7 @@ public abstract class FXMapView {
     bar.Reparent(row);
     let back = new inkRectangle();
     back.SetAnchor(inkEAnchor.Fill);
-    back.SetTintColor(FXColors.Faint());
+    FXTint(back, n"MainColors.DarkerRed");
     back.Reparent(bar);
     let fill = new inkRectangle();
     fill.SetAnchor(inkEAnchor.TopLeft);

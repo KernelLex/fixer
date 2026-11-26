@@ -31,9 +31,18 @@ public class FXFixerSite extends BrowserEventsListener {
     super.Init(logic);
     this.m_siteData.address = FXSiteAddress();
     this.m_siteData.shortName = "FIXER//NET";
-    // [VERIFY] icon: a part of the game's internet icon atlas. Pick a better-fitting part once seen in game.
-    this.m_siteData.iconAtlasPath = r"base\\gameplay\\gui\\world\\internet\\templates\\atlases\\icons_atlas.inkatlas";
-    this.m_siteData.iconTexturePart = n"zetatech1";
+    // The tile on the home page shows the game's own fixer symbol, the one on fixers' map pins (record
+    // ChoiceIcons.FixerIcon, choice_ui_icon.tweak), read from TweakDB. The browser only sets atlas and part on its tile
+    // image (browserController.script, SetSlot), so any of the game's atlases works there. [VERIFY] how it reads at
+    // the tile's size.
+    let icon = TweakDBInterface.GetUIIconRecord(t"ChoiceIcons.FixerIcon");
+    if IsDefined(icon) && ResRef.IsValid(icon.AtlasResourcePath()) {
+      this.m_siteData.iconAtlasPath = icon.AtlasResourcePath();
+      this.m_siteData.iconTexturePart = icon.AtlasPartName();
+    } else {
+      this.m_siteData.iconAtlasPath = r"base\\gameplay\\gui\\world\\internet\\templates\\atlases\\icons_atlas.inkatlas";
+      this.m_siteData.iconTexturePart = n"zetatech1";
+    }
   }
 
   public func GetWebPage(address: String) -> ref<inkCompoundWidget> {
