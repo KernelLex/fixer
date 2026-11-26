@@ -18,19 +18,22 @@ public func FXRunDay(game: GameInstance, day: Int32) -> Void {
   }
   ops.AddHeat(-decay, -2);
 
+  if career.GetStage() < FXStage.DexBook() {
+    return;
+  }
   FXCrewMorale(game);
-  FXCandidacyRoll(game, day);
-  FXDinoDaily(game, day);
+  // A gig finished while the journal callback wasn't listening still opens a fixer's door.
+  FXCheckFixers(game, s"day \(day)");
+  FXAlliesDaily(game);
+  FXWarsDaily(game);
 
-  // Turf pays once V runs City Center.
-  if career.GetStage() >= FXStage.Fixer() {
-    let blocks = war.BlocksHeldBy(FXHolder.V());
-    let income = blocks * FXSettingsBridge.BlockIncome();
-    if income > 0 {
-      FXGiveMoney(game, income);
-      ops.AddLedger(day, FXLedgerKind.Turf(), income);
-      FXLog("Ops", s"Turf income: \(blocks) blocks pay \(income).");
-    }
+  // Every block V holds pays, during a war and after it.
+  let blocks = war.BlocksHeld(-1, FXHolder.V());
+  let income = blocks * FXSettingsBridge.BlockIncome();
+  if income > 0 {
+    FXGiveMoney(game, income);
+    ops.AddLedger(day, FXLedgerKind.Turf(), income);
+    FXLog("Ops", s"Turf income: \(blocks) blocks pay \(income).");
   }
 
   FXRefreshBoard(game, s"day \(day)");

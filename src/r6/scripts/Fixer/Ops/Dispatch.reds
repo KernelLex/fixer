@@ -32,7 +32,7 @@ public func FXSuccessForJob(game: GameInstance, job: ref<FXJob>, members: array<
     modifier *= 0.9;            // Arasaka is watching (BUILD.md §3.5)
   }
   if job.kind == FXJobKind.Strike() && IsDefined(war) {
-    modifier *= 1.1 - Cast<Float>(war.Strength()) / 400.0;   // a strong Dino is harder to hit
+    modifier *= 1.1 - Cast<Float>(war.Strength(job.fixer - 1)) / 400.0;   // a strong fixer is harder to hit
   }
   return FXSuccessFromContributions(contribs, job.need, job.difficulty, modifier);
 }
@@ -64,7 +64,8 @@ public func FXDispatch(game: GameInstance, order: ref<FXDispatchOrder>) -> Bool 
   let now = FXNow(game);
   job.state = FXJobState.Running();
   job.cut = Clamp(order.cut, 10, 60);
-  job.dinoCut = job.kind == FXJobKind.Dino() && IsDefined(war) ? war.DinoCut() : 0;
+  // An ally's cut is the setting at the moment the crew goes out; nobody else takes one.
+  job.fixerCut = job.kind == FXJobKind.Ally() ? FXSettingsBridge.AllyCut() : 0;
   job.due = now + FXGameHours(Cast<Float>(job.hours));
   ops.SaveJob(job);
   for id in team {
@@ -193,27 +194,29 @@ public func FXResolveJob(game: GameInstance, job: ref<FXJob>) -> Void {
   if hasNetrunner {
     heat = heat * 85 / 100;
   }
+  heat = heat * FXAllyHeatFactor(game, FXFixerOfJob(game, job)) / 100;
   ops.AddHeat(heat, job.IsArasaka() ? FXJobArasakaHeat(job.difficulty) : 0);
 
   // What the job meant for the bigger picture.
-  if job.kind == FXJobKind.Dino() && (outcome == FXOutcome.Success() || outcome == FXOutcome.Partial()) {
-    war.CountDinoJob();
+  if job.kind == FXJobKind.Ally() && (outcome == FXOutcome.Success() || outcome == FXOutcome.Partial()) {
+    war.CountAllyJob(job.fixer - 1);
   }
   if job.kind == FXJobKind.Vanilla() {
     ops.SetCooldown(job.questHash, now + FXGameDays(3.0));
   }
   if job.kind == FXJobKind.Strike() {
     let b = job.BlockIndex();
-    if outcome == FXOutcome.Success() && war.BlockHolder(b) == FXHolder.Dino() {
+    let k = job.fixer - 1;
+    if outcome == FXOutcome.Success() && war.BlockHolder(b) == FXHolder.Fixer() {
       war.SetBlockHolder(b, FXHolder.V());
-      war.SetStrength(war.Strength() - 100 / Max(1, war.BlockCount()) - 4);
+      war.SetStrength(k, war.Strength(k) - 100 / Max(1, war.BlocksOf(k)) - 4);
       FXSend(game, FXSender.Net(), FXMsgKind.WarBlockTaken(), 0, b + 1);
     } else {
       if outcome == FXOutcome.Partial() {
-        war.SetStrength(war.Strength() - 4);
+        war.SetStrength(k, war.Strength(k) - 4);
       } else {
         if outcome == FXOutcome.Disaster() {
-          war.SetStrength(war.Strength() + 4);
+          war.SetStrength(k, war.Strength(k) + 4);
         }
       }
     }
@@ -233,7 +236,7 @@ public func FXResolveJob(game: GameInstance, job: ref<FXJob>) -> Void {
     FXSend(game, FXSender.Net(), FXMsgKind.JobLost(), 0, job.id);
   }
   if job.kind == FXJobKind.Strike() {
-    FXCheckWarWon(game);
+    FXCheckFixerWon(game, job.fixer - 1);
   }
 }
 
@@ -305,6 +308,20 @@ public func FXRecoverCrew(game: GameInstance) -> Void {
     }
     i += 1;
   }
+}
+
+// Whose turf a job is on: its own fixer if it has one, else the district of its place.
+public func FXFixerOfJob(game: GameInstance, job: ref<FXJob>) -> Int32 {
+  if job.fixer > 0 {
+    return job.fixer - 1;
+  }
+  if TDBID.IsValid(job.place) {
+    let rec = TweakDBInterface.GetFastTravelPointRecord(job.place);
+    if IsDefined(rec) {
+      return FXFixerOfDistrict(rec.District());
+    }
+  }
+  return -1;
 }
 
 // Assign a guard to a block V holds (memberId 0 takes the guard off).

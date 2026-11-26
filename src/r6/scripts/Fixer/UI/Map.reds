@@ -4,8 +4,8 @@ module Fixer
 //
 // The map is drawn by us: the game's world map is a 3D fullscreen menu and can't be put inside a page. Everything on
 // it sits at its real world position: fast-travel points (faint dots), turf blocks (squares), jobs (pins) and V.
-// The view fits itself to whatever is on it, so no map coordinates are hardcoded. Before V runs City Center it shows
-// City Center only; afterwards the whole city.
+// The view fits itself to whatever is on it, so no map coordinates are hardcoded. Dex's clients are everywhere, so it
+// always shows the whole city.
 //
 // Clicking a pin selects it (page-local, refreshed next frame). The card beside the map shows what the job needs and
 // the odds for the crew V picks; SEND records a dispatch order for the tick.
@@ -46,7 +46,7 @@ public abstract class FXMapView {
     let career = FXCareerBook.Get(game);
     let war = FXWarBook.Get(game);
     let system = FXFixerSystem.Get(game);
-    if IsDefined(career) && IsDefined(war) && IsDefined(system) && career.GetStage() >= FXStage.War() {
+    if IsDefined(career) && IsDefined(war) && IsDefined(system) && war.BlockCount() > 0 {
       let places = system.Places();
       let b = 0;
       while b < war.BlockCount() && shown < 4 {
@@ -83,8 +83,7 @@ public abstract class FXMapView {
     if !IsDefined(career) || !IsDefined(ops) || !IsDefined(war) || !IsDefined(system) {
       return unplaced;
     }
-    let cityOnly = career.GetStage() < FXStage.Fixer();
-    let showBlocks = career.GetStage() >= FXStage.War() && war.BlockCount() > 0;
+    let showBlocks = war.BlockCount() > 0;
     let places = system.Places();
 
     // ---- What goes on the map, and the bounds it needs ----
@@ -94,7 +93,7 @@ public abstract class FXMapView {
     let maxY = -1000000.0;
     let points = 0;
     for p in places {
-      if p.hasPos && (!cityOnly || p.cityCenter) {
+      if p.hasPos {
         minX = MinF(minX, p.x); maxX = MaxF(maxX, p.x);
         minY = MinF(minY, p.y); maxY = MaxF(maxY, p.y);
         points += 1;
@@ -174,7 +173,7 @@ public abstract class FXMapView {
     let districtY: array<Float>;
     let districtN: array<Int32>;
     for p in places {
-      if p.hasPos && (!cityOnly || p.cityCenter) {
+      if p.hasPos {
         let px = ox + (p.x - minX) * scale;
         let py = oy + (maxY - p.y) * scale;
         let size = p.subway ? 4.0 : 7.0;
@@ -284,24 +283,24 @@ public abstract class FXMapView {
     let row = new inkHorizontalPanel();
     row.SetMargin(inkMargin(0.0, 8.0, 0.0, 0.0));
     row.Reparent(parent);
-    if stage == FXStage.Partner() {
-      FXMapView.LegendItem(row, FXColors.Yellow(), FXText(game, "FX-Legend-Dino"));
+    let war = FXWarBook.Get(game);
+    FXMapView.LegendItem(row, FXColors.Blue(), FXText(game, "FX-Legend-Yours"));
+    if IsDefined(war) && war.CountRel(FXRelation.Allied()) > 0 {
+      FXMapView.LegendItem(row, FXColors.Yellow(), FXText(game, "FX-Legend-Ally"));
     }
-    if stage == FXStage.War() {
+    if IsDefined(war) && war.CountRel(FXRelation.War()) > 0 {
       FXMapView.LegendItem(row, FXColors.Red(), FXText(game, "FX-Legend-Strike"));
-      FXMapView.LegendItem(row, FXColors.Blue(), FXText(game, "FX-Legend-Yours"));
     }
-    if stage >= FXStage.Fixer() {
-      FXMapView.LegendItem(row, FXColors.Blue(), FXText(game, "FX-Legend-Yours"));
+    if IsDefined(war) && war.CountRel(FXRelation.Taken()) > 0 {
       FXMapView.LegendItem(row, FXColors.Orange(), FXText(game, "FX-Legend-Gig"));
       FXMapView.LegendItem(row, FXColors.Sky(), FXText(game, "FX-Legend-NCPD"));
       FXMapView.LegendItem(row, FXColors.Magenta(), FXText(game, "FX-Legend-Psycho"));
       FXMapView.LegendItem(row, FXColors.Green(), FXText(game, "FX-Legend-Vehicle"));
       FXMapView.LegendItem(row, FXColors.Cyan(), FXText(game, "FX-Legend-Courier"));
     }
-    if stage >= FXStage.War() {
+    if IsDefined(war) && war.BlockCount() > 0 {
       FXMapView.LegendItem(row, FXColors.Blue(), FXText(game, "FX-Legend-YourBlock"));
-      FXMapView.LegendItem(row, FXColors.Red(), FXText(game, "FX-Legend-DinoBlock"));
+      FXMapView.LegendItem(row, FXColors.Red(), FXText(game, "FX-Legend-FixerBlock"));
     }
   }
 
@@ -354,9 +353,9 @@ public abstract class FXMapView {
     page.AddLineW(card, kindLine, 24, FXColors.Dim(), cw);
     page.AddLineW(card, FXTextF(game, "FX-Card-Facts", [ToString(job.difficulty), ToString(job.hours), ToString(job.need)]), 28, FXColors.Text(), cw);
     let payLine = FXTextF(game, "FX-Card-Pay", [FXMoneyText(job.pay)]);
-    let dinoCut = job.kind == FXJobKind.Dino() && IsDefined(war) ? war.DinoCut() : job.dinoCut;
-    if dinoCut > 0 {
-      payLine = s"\(payLine)  //  \(FXTextF(game, "FX-Card-DinoTakes", [ToString(dinoCut)]))";
+    let fixerCut = job.kind == FXJobKind.Ally() ? FXSettingsBridge.AllyCut() : job.fixerCut;
+    if fixerCut > 0 {
+      payLine = s"\(payLine)  //  \(FXTextF(game, "FX-Card-FixerTakes", [FXFixerName(game, job.fixer - 1), ToString(fixerCut)]))";
     }
     page.AddLineW(card, payLine, 28, FXColors.Text(), cw);
     page.AddLineW(card, FXTextF(game, "FX-Card-Roles", [FXRoleName(game, FXJobRoleA(job.jobType)), FXRoleName(game, FXJobRoleB(job.jobType))]), 24, FXColors.Dim(), cw);
@@ -423,7 +422,7 @@ public abstract class FXMapView {
       let pct = RoundF(chance * 100.0);
       let preview = ops.JobById(job.id);
       preview.cut = page.Cut();
-      preview.dinoCut = dinoCut;
+      preview.fixerCut = fixerCut;
       if count >= job.need {
         let color = pct >= 70 ? FXColors.Green() : (pct >= 40 ? FXColors.Yellow() : FXColors.Red());
         page.AddLineW(card, FXTextF(game, "FX-Card-Success", [ToString(pct)]), 36, color, cw);
@@ -457,6 +456,7 @@ public abstract class FXMapView {
     }
     page.AddLineW(card, FXBlockName(game, b), 32, FXColors.Blue(), cw);
     page.AddLineW(card, FXPlaceDistrictName(game, war.BlockPlace(b)), 24, FXColors.Dim(), cw);
+    page.AddLineW(card, FXTextF(game, "FX-Block-Turf", [FXFixerName(game, war.BlockFixer(b))]), 24, FXColors.Dim(), cw);
     if war.BlockHolder(b) == FXHolder.V() {
       page.AddLineW(card, FXText(game, "FX-Block-Yours"), 28, FXColors.Blue(), cw);
       let guard = war.BlockGuard(b);
@@ -470,7 +470,7 @@ public abstract class FXMapView {
         page.AddButtonH(row, FXText(game, "FX-Block-Unguard"), FXPageAction.Unguard(), b, 220.0, 52.0, false);
       }
     } else {
-      page.AddLineW(card, FXText(game, "FX-Block-Dinos"), 28, FXColors.Red(), cw);
+      page.AddLineW(card, FXTextF(game, "FX-Block-Theirs", [FXFixerName(game, war.BlockFixer(b))]), 28, FXColors.Red(), cw);
       page.AddLineW(card, FXText(game, "FX-Block-StrikeHelp"), 24, FXColors.Dim(), cw);
     }
   }
@@ -481,13 +481,7 @@ public abstract class FXMapView {
     let ops = FXOpsBook.Get(game);
     let cw = FXMapView.CardW();
     let stage = IsDefined(career) ? career.GetStage() : 0;
-    let key = "FX-Help-Partner";
-    if stage == FXStage.War() {
-      key = "FX-Help-War";
-    }
-    if stage >= FXStage.Fixer() {
-      key = "FX-Help-Fixer";
-    }
+    let key = stage >= FXStage.King() ? "FX-Help-King" : "FX-Help-Dex";
     page.AddLineW(card, FXText(game, key), 28, FXColors.Text(), cw);
     if IsDefined(ops) {
       page.AddLineW(card, FXTextF(game, "FX-Help-Counts", [ToString(ops.CountByState(FXJobState.Open())), ToString(ops.CountByState(FXJobState.Running()))]), 26, FXColors.Dim(), cw);
@@ -595,7 +589,7 @@ public abstract class FXMapView {
 
 public func FXJobColor(job: ref<FXJob>) -> HDRColor {
   switch job.kind {
-    case FXJobKind.Dino(): return FXColors.Yellow();
+    case FXJobKind.Ally(): return FXColors.Yellow();
     case FXJobKind.Strike(): return FXColors.Red();
     case FXJobKind.Street(): return FXColors.Blue();
     default:
@@ -620,6 +614,9 @@ public func FXJobKindLabel(game: GameInstance, job: ref<FXJob>) -> String {
       default: break;
     }
     return FXTextF(game, "FX-Kind-2", [FXText(game, site)]);
+  }
+  if job.kind == FXJobKind.Ally() || job.kind == FXJobKind.Strike() {
+    return FXTextF(game, s"FX-Kind-\(job.kind)", [FXFixerName(game, job.fixer - 1)]);
   }
   return FXText(game, s"FX-Kind-\(Clamp(job.kind, 0, 3))");
 }

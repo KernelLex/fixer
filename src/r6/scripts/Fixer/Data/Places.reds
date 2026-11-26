@@ -14,6 +14,7 @@ public class FXPlace {
   public let districtName: String;
   public let district: Int32;
   public let cityCenter: Bool;
+  public let fixer: Int32;        // whose turf it's on (FXFixer), -1 for none
   public let subway: Bool;
   public let x: Float;
   public let y: Float;
@@ -27,6 +28,7 @@ public class FXSite {
   public let title: String;
   public let district: Int32;
   public let cityCenter: Bool;
+  public let fixer: Int32;        // whose turf it's on (gigs: by id; other jobs: by district), -1 for none
   public let level: Int32;
   public let x: Float;
   public let y: Float;
@@ -77,10 +79,12 @@ public func FXBuildPlaces(game: GameInstance) -> array<ref<FXPlace>> {
         p.record = point.GetPointRecord();
         p.name = GetLocalizedText(rec.DisplayName());
         let district = rec.District();
+        p.fixer = -1;
         if IsDefined(district) {
           p.district = EnumInt(district.Type());
           p.cityCenter = FXIsCityCenter(district);
           p.districtName = GetLocalizedText(district.LocalizedName());
+          p.fixer = FXFixerOfDistrict(district);
         }
         p.subway = rec.SubwayStation();
         let pin = ms.GetMappin(point.mappinID);
@@ -115,6 +119,26 @@ public func FXPickPlace(game: GameInstance, places: array<ref<FXPlace>>, cityCen
   let any: array<ref<FXPlace>>;
   for p in places {
     if !cityCenterOnly || p.cityCenter {
+      ArrayPush(any, p);
+      if p.hasPos {
+        ArrayPush(withPos, p);
+      }
+    }
+  }
+  let pool = ArraySize(withPos) > 0 ? withPos : any;
+  let n = ArraySize(pool);
+  if n == 0 {
+    return null;
+  }
+  return pool[FXRollInt(game, 0, n - 1, label)];
+}
+
+// A random place on one fixer's turf (prefers places with a position).
+public func FXPickPlaceOf(game: GameInstance, places: array<ref<FXPlace>>, fixer: Int32, label: String) -> ref<FXPlace> {
+  let withPos: array<ref<FXPlace>>;
+  let any: array<ref<FXPlace>>;
+  for p in places {
+    if p.fixer == fixer {
       ArrayPush(any, p);
       if p.hasPos {
         ArrayPush(withPos, p);
@@ -176,6 +200,14 @@ public func FXJobTypeForSite(questType: Int32, questHash: Int32) -> Int32 {
   }
 }
 
+// A gig must be a real gig (an sts_ id): the journal also files each district's completion reward as a gig.
+public func FXIsRealSite(entry: wref<JournalQuest>) -> Bool {
+  if Equals(entry.GetType(), gameJournalQuestType.StreetStory) {
+    return StrBeginsWith(entry.GetId(), "sts_");
+  }
+  return true;
+}
+
 // Every non-story job V hasn't finished, as a site. Phantom Liberty entries only when it is installed.
 public func FXBuildSites(game: GameInstance, places: array<ref<FXPlace>>) -> array<ref<FXSite>> {
   let out: array<ref<FXSite>>;
@@ -194,7 +226,7 @@ public func FXBuildSites(game: GameInstance, places: array<ref<FXPlace>>) -> arr
   let i = 0;
   while i < n {
     let quest = entries[i] as JournalQuest;
-    if IsDefined(quest) && FXIsSiteType(quest.GetType()) && (ep1 || !jm.IsEp1Entry(quest)) {
+    if IsDefined(quest) && FXIsSiteType(quest.GetType()) && (ep1 || !jm.IsEp1Entry(quest)) && FXIsRealSite(quest) {
       let district = jm.GetDistrict(quest);
       let title = quest.GetTitle(jm);
       if StrBeginsWith(title, "LocKey#") {
@@ -207,6 +239,11 @@ public func FXBuildSites(game: GameInstance, places: array<ref<FXPlace>>) -> arr
         s.title = title;
         s.district = EnumInt(district.Type());
         s.cityCenter = FXIsCityCenter(district);
+        // A gig belongs to the fixer who gave it (its id); anything else to whoever runs the district.
+        s.fixer = FXFixerOfGigId(quest.GetId());
+        if s.fixer < 0 {
+          s.fixer = FXFixerOfDistrict(district);
+        }
         s.level = quest.GetRecommendedLevel();
         let pin = ms.GetMappinFromQuest(quest);
         if IsDefined(pin) {

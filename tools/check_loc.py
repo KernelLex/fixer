@@ -15,7 +15,7 @@ LINES = ROOT / "Messages" / "Lines.reds"
 
 # Key families built as prefix + number in code, with how many members each has.
 FAMILIES = {
-    "FX-Stage-": 6, "FX-Role-": 5, "FX-Trait-": 7, "FX-Status-": 7, "FX-JobType-": 9,
+    "FX-Stage-": 3, "FX-Fixer-": 7, "FX-FixerTurf-": 7, "FX-Rel-": 5, "FX-Role-": 5, "FX-Trait-": 7, "FX-Status-": 7, "FX-JobType-": 9,
     "FX-Outcome-": 5, "FX-Fate-": 4, "FX-FateLine-": 4, "FX-Kind-": 4,
 }
 

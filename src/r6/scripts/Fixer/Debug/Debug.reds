@@ -19,10 +19,11 @@ public func FXDebugCarry(game: GameInstance, action: Int32, arg: Int32) -> Void 
       look.isGig = true;
       look.finished = true;
       look.cityCenter = action == FXAction.DebugCityCenterGig();
+      look.fixer = look.cityCenter ? FXFixer.Dino() : FXRollInt(game, 0, FXFixer.Count() - 1, "debug gig fixer");
       look.hash = -1 - career.GigCount();
       look.id = s"debug_gig_\(career.GigCount())";
       look.district = look.cityCenter ? "CityCenter" : "Debug";
-      if career.AddGig(look.hash, (look.cityCenter ? FXGigFlag.CityCenter() : 0) | FXGigFlag.Live() | FXGigFlag.Debug(), FXNow(game)) {
+      if career.AddGig(look.hash, ((look.cityCenter ? FXGigFlag.CityCenter() : 0) | FXGigFlag.Live() | FXGigFlag.Debug()) + FXGigFixerFlag(look.fixer), FXNow(game)) {
         FXLog("Debug", s"Added \(look.id) (\(look.district)).");
         system.HandleLiveGig(look);
       }
@@ -54,35 +55,64 @@ public func FXDebugCarry(game: GameInstance, action: Int32, arg: Int32) -> Void 
       FXLog("Debug", "Running one day's work.");
       system.DebugRunDay();
       break;
-    case FXAction.DebugOffer():
-      // Straight to Dino's offer, from any stage below his partner.
-      if career.GetStage() < FXStage.Candidate() {
-        career.SetStage(FXStage.Candidate(), FXNow(game));
+    case FXAction.DebugDex():
+      // Dex's book without waiting for the story: the stage only, the game's own fact is left alone.
+      if career.GetStage() == FXStage.Merc() {
+        career.SetStage(FXStage.DexBook(), FXNow(game));
+        FXSend(game, FXSender.DexLine(), FXMsgKind.DexBook(), 0, 0);
+        FXOfferLead(game, 0, "debug: Dex's book");
+        FXRefreshBoard(game, "debug: Dex's book");
       }
-      FXWarBook.Get(game).SetDinoState(FXDinoState.OfferPending(), FXDay(game));
-      FXSend(game, FXSender.Dino(), FXMsgKind.DinoOffer(), 0, 0);
-      FXLog("Debug", "Dino's offer forced.");
+      FXLog("Debug", "Running Dex's book.");
+      break;
+    case FXAction.DebugReady():
+      let war = FXWarBook.Get(game);
+      let k = 0;
+      while k < FXFixer.Count() {
+        if (arg < 0 || arg == k) && war.Rel(k) == FXRelation.Unknown() {
+          war.SetRel(k, FXRelation.Ready(), FXDay(game));
+          FXSend(game, FXSender.Fixer(), FXMsgKind.FixerReady(), k, 0);
+          FXLog("Debug", s"Fixer \(k) made ready.");
+        }
+        k += 1;
+      }
       break;
     case FXAction.DebugWar():
-      if career.GetStage() < FXStage.Partner() {
-        career.SetStage(FXStage.Partner(), FXNow(game));
-        FXWarBook.Get(game).SetDinoCut(FXSettingsBridge.DinoCut());
+      let war = FXWarBook.Get(game);
+      let k = 0;
+      let target = -1;
+      while k < FXFixer.Count() && target < 0 {
+        if (arg < 0 || arg == k) && war.Rel(k) != FXRelation.War() && war.Rel(k) != FXRelation.Taken() {
+          target = k;
+        }
+        k += 1;
       }
-      FXStartWar(game, "debug");
+      if target < 0 {
+        FXLog("Debug", "War ignored: no fixer left to fight.");
+        break;
+      }
+      if war.Rel(target) == FXRelation.Unknown() {
+        war.SetRel(target, FXRelation.Ready(), FXDay(game));
+      }
+      FXGoToWar(game, target, "debug");
       break;
     case FXAction.DebugWin():
       let war = FXWarBook.Get(game);
-      if war.DinoState() != FXDinoState.War() {
-        FXLog("Debug", "Win ignored: there is no war.");
-        break;
+      let k = 0;
+      while k < FXFixer.Count() {
+        if war.Rel(k) == FXRelation.War() {
+          let b = 0;
+          while b < war.BlockCount() {
+            if war.BlockFixer(b) == k {
+              war.SetBlockHolder(b, FXHolder.V());
+            }
+            b += 1;
+          }
+          war.SetStrength(k, 0);
+          FXCheckFixerWon(game, k);
+        }
+        k += 1;
       }
-      let b = 0;
-      while b < war.BlockCount() {
-        war.SetBlockHolder(b, FXHolder.V());
-        b += 1;
-      }
-      war.SetStrength(0);
-      FXCheckWarWon(game);
       break;
     case FXAction.DebugResolve():
       let ops = FXOpsBook.Get(game);
@@ -143,7 +173,15 @@ public func FXDumpState(game: GameInstance) -> Void {
   let war = FXWarBook.Get(game);
   if IsDefined(ops) && IsDefined(war) {
     FXLog("Debug", s"Ops: \(ops.CountByState(FXJobState.Open())) open, \(ops.CountByState(FXJobState.Running())) under way, heat \(ops.HeatNcpd())/\(ops.HeatArasaka()), earned \(ops.TotalEarned()), board day \(ops.BoardDay())");
-    FXLog("Debug", s"Dino: state \(war.DinoState()), cut \(war.DinoCut())%, jobs for him \(war.DinoJobsDone()) (\(war.JobsSinceRaise()) since raise, \(war.Raises()) raises), strength \(war.Strength()), blocks V \(war.BlocksHeldBy(FXHolder.V()))/\(war.BlockCount()), war days \(war.WarDays()); candidacy score \(FXCandidacyScore(game)), chance \(FXCandidacyChance(game))%");
+    let k = 0;
+    while k < FXFixer.Count() {
+      FXLog("Debug", s"Fixer \(k): relation \(war.Rel(k)) since day \(war.RelDay(k)), strength \(war.Strength(k)), blocks V \(war.BlocksHeld(k, FXHolder.V()))/\(war.BlocksOf(k)), ally jobs \(war.AllyJobs(k)), gigs on record \(career.CountForFixer(k))");
+      k += 1;
+    }
+    let progress = FXScanFixers(game);
+    for p in progress {
+      FXLog("Debug", s"Fixer \(p.fixer) journal: \(p.finished)/\(p.total) gigs finished, completion rewards \(p.rewardsDone)/\(p.rewards), complete \(p.Complete())");
+    }
     let places = FXFixerSystem.Get(game).Places();
     let withPos = 0;
     for p in places {

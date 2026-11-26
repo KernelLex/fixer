@@ -1,7 +1,9 @@
 module Fixer
 
-// Gigs are journal quests of type StreetStory. The quest log files StreetStory under "Gigs" and Contract under
-// "NCPD" (questLog.script, GetDisplayedCategory), so the enum names are misleading: do not use Contract here.
+// Gigs are journal quests of type StreetStory whose id starts with "sts_". The quest log files StreetStory under
+// "Gigs" and Contract under "NCPD" (questLog.script, GetDisplayedCategory), so the enum names are misleading: do not use
+// Contract here. The journal also files each district's completion reward (westbrook_reward, heywood_reward...) as a
+// StreetStory with no district: those are not gigs (a real save counted 3 of them), hence the id rule.
 // A gig's district comes from JournalManager.GetDistrict; Downtown and Corpo Plaza list City Center as their parent
 // (fasttravel/districts.tweak), so the district chain is walked up.
 //
@@ -33,6 +35,7 @@ public class FXGigLook {
   public let finished: Bool;
   public let failed: Bool;
   public let cityCenter: Bool;
+  public let fixer: Int32;             // whose gig it was (FXFixer), -1 if no fixer's prefix matches
   public let hash: Int32;
   public let id: String;
   public let district: String;
@@ -45,12 +48,13 @@ public func FXLookAtQuest(jm: ref<JournalManager>, entry: wref<JournalEntry>) ->
   if !IsDefined(quest) {
     return look;
   }
-  if !Equals(quest.GetType(), gameJournalQuestType.StreetStory) {
+  if !Equals(quest.GetType(), gameJournalQuestType.StreetStory) || !StrBeginsWith(quest.GetId(), "sts_") {
     return look;
   }
   look.isGig = true;
   look.hash = jm.GetEntryHash(quest);
   look.id = quest.GetId();
+  look.fixer = FXFixerOfGigId(look.id);
   let state = jm.GetEntryState(quest);
   look.failed = Equals(state, gameJournalEntryState.Failed);
   look.finished = look.failed || Equals(state, gameJournalEntryState.Succeeded);
@@ -77,9 +81,10 @@ public func FXRecordGig(game: GameInstance, look: ref<FXGigLook>, live: Bool) ->
   if live {
     flags = flags | FXGigFlag.Live();
   }
+  flags += FXGigFixerFlag(look.fixer);
   let added = career.AddGig(look.hash, flags, FXNow(game));
   if added {
-    FXLog("Gigs", s"\(live ? "Finished" : "Found finished") gig \(look.id) (hash \(look.hash), district \(look.district), \(look.cityCenter ? "City Center" : "elsewhere"), \(look.failed ? "FAILED" : "succeeded")).");
+    FXLog("Gigs", s"\(live ? "Finished" : "Found finished") gig \(look.id) (hash \(look.hash), district \(look.district), fixer \(look.fixer), \(look.failed ? "FAILED" : "succeeded")).");
   }
   return added;
 }

@@ -1,95 +1,80 @@
 module Fixer
 
-// The stage rules. Read-only over the books: FXFixerSystem.CheckProgression and Ops/Dino.reds apply them.
+// The career rules. Read-only over the books: FXFixerSystem.CheckProgression and Ops/Fixers.reds apply them.
+//  - Merc -> Dex's book: when "Playing for Time" is done (q101_done, a fact the game's own scripts read in
+//    menuDataBuilder.script and radialHubMenuGameController.script). That is the mission where Dex lies dead.
+//  - Dex's book -> King of Night City: every fixer V's ally or beaten (Ops/Fixers.reds, FXCheckKing).
 
-// Crew cap: the early cap until V runs City Center, then 8, and 12 while V holds every block (BUILD.md §3.2).
-// The one place the cap is decided: every caller goes through here.
-public func FXRosterCap(game: GameInstance) -> Int32 {
-  let career = FXCareerBook.Get(game);
-  let war = FXWarBook.Get(game);
-  let stage = IsDefined(career) ? career.GetStage() : 0;
-  if stage < FXStage.Fixer() {
-    return FXSettingsBridge.RosterCapEarly();
-  }
-  if IsDefined(war) && war.BlockCount() > 0 && war.BlocksHeldBy(FXHolder.V()) == war.BlockCount() {
-    return 12;
-  }
-  return 8;
+public func FXDexIsGone(game: GameInstance) -> Bool {
+  return GameInstance.GetQuestsSystem(game).GetFact(n"q101_done") > 0;
 }
 
-// Gigs that count toward V's name: every district, or City Center only (setting).
+// Crew cap: the base, +1 for every ally, +2 for every fixer beaten (BUILD.md §3.2's "larger roster with turf").
+// The one place the cap is decided: every caller goes through here.
+public func FXRosterCap(game: GameInstance) -> Int32 {
+  let war = FXWarBook.Get(game);
+  let cap = FXSettingsBridge.RosterCapEarly();
+  if IsDefined(war) {
+    cap += war.CountRel(FXRelation.Allied()) + 2 * war.CountRel(FXRelation.Taken());
+  }
+  return Min(cap, 20);
+}
+
+// Gigs V has finished (the journal's count, read on record): every district.
 public func FXCountedGigs(career: ref<FXCareerBook>) -> Int32 {
   if !IsDefined(career) {
     return 0;
   }
-  return career.CountSucceeded(!FXSettingsBridge.Get().countAllDistricts);
+  return career.CountSucceeded(false);
 }
 
-public func FXMeetsRecruiter(career: ref<FXCareerBook>) -> Bool {
-  return FXCountedGigs(career) >= FXSettingsBridge.GigsForRecruiter();
-}
-
-public func FXMeetsCandidate(game: GameInstance, career: ref<FXCareerBook>) -> Bool {
-  if !IsDefined(career) {
-    return false;
-  }
-  return FXCountedGigs(career) >= FXSettingsBridge.GigsForCandidate()
-    && career.CountSucceeded(true) >= FXSettingsBridge.CityCenterGigsForCandidate()
-    && FXStreetCred(game) >= FXSettingsBridge.StreetCredForCandidate();
-}
-
-// One line saying what stands between V and the next stage. Shown on the terminal and written to the log when it
-// changes, so a "nothing happens" report has its answer in the log.
+// One line saying what comes next. Shown on the terminal and written to the log when it changes, so a "nothing
+// happens" report has its answer in the log.
 public func FXNextStepText(game: GameInstance, career: ref<FXCareerBook>) -> String {
   if !IsDefined(career) {
     return "";
   }
   let stage = career.GetStage();
-  let counted = FXCountedGigs(career);
   if stage == FXStage.Merc() {
-    let need = Max(0, FXSettingsBridge.GigsForRecruiter() - counted);
-    return FXTextF(game, "FX-UI-Next-Recruiter", [ToString(need)]);
+    return FXText(game, "FX-UI-Next-Merc");
   }
-  if stage == FXStage.Recruiter() {
-    let parts: array<String>;
-    let needGigs = FXSettingsBridge.GigsForCandidate() - counted;
-    if needGigs > 0 {
-      ArrayPush(parts, FXTextF(game, "FX-UI-Next-NeedGigs", [ToString(needGigs)]));
-    }
-    let needCC = FXSettingsBridge.CityCenterGigsForCandidate() - career.CountSucceeded(true);
-    if needCC > 0 {
-      ArrayPush(parts, FXTextF(game, "FX-UI-Next-NeedCC", [ToString(needCC)]));
-    }
-    let needCred = FXSettingsBridge.StreetCredForCandidate();
-    if FXStreetCred(game) < needCred {
-      ArrayPush(parts, FXTextF(game, "FX-UI-Next-NeedCred", [ToString(needCred)]));
-    }
-    let joined = "";
-    let n = ArraySize(parts);
-    let i = 0;
-    while i < n {
-      joined = i == 0 ? parts[i] : s"\(joined), \(parts[i])";
-      i += 1;
-    }
-    return FXTextF(game, "FX-UI-Next-Candidate", [joined]);
+  if stage == FXStage.King() {
+    return FXText(game, "FX-UI-Next-King");
   }
   let war = FXWarBook.Get(game);
-  if stage == FXStage.Candidate() {
-    if IsDefined(war) && war.DinoState() == FXDinoState.OfferPending() {
-      return FXText(game, "FX-UI-Next-OfferOpen");
+  let system = FXFixerSystem.Get(game);
+  if !IsDefined(war) || !IsDefined(system) {
+    return "";
+  }
+  // An answer V owes comes first, then a war in progress, then the fixer closest to reaching out.
+  let k = 0;
+  while k < FXFixer.Count() {
+    if war.Rel(k) == FXRelation.Ready() {
+      return FXTextF(game, "FX-UI-Next-Answer", [FXFixerName(game, k)]);
     }
-    let pity = Max(0, FXSettingsBridge.PityDays() - career.GetFailedRolls());
-    return FXTextF(game, "FX-UI-Next-Wait", [ToString(FXCandidacyChance(game)), ToString(pity)]);
+    k += 1;
   }
-  if stage == FXStage.Partner() && IsDefined(war) {
-    if war.DinoState() == FXDinoState.RaisePending() {
-      return FXText(game, "FX-UI-Next-RaiseOpen");
+  k = 0;
+  while k < FXFixer.Count() {
+    if war.Rel(k) == FXRelation.War() {
+      return FXTextF(game, "FX-UI-Next-War", [FXFixerName(game, k), ToString(war.BlocksHeld(k, FXHolder.V())), ToString(war.BlocksOf(k)), ToString(war.Strength(k))]);
     }
-    let left = Max(0, FXSettingsBridge.RaiseAfterJobs() - war.JobsSinceRaise());
-    return FXTextF(game, "FX-UI-Next-Partner", [ToString(left)]);
+    k += 1;
   }
-  if stage == FXStage.War() && IsDefined(war) {
-    return FXTextF(game, "FX-UI-Next-War", [ToString(war.BlocksHeldBy(FXHolder.V())), ToString(war.BlockCount()), ToString(war.Strength())]);
+  let best = -1;
+  let bestLeft = 1000;
+  let progress = system.FixerProgress();
+  for p in progress {
+    if war.Rel(p.fixer) == FXRelation.Unknown() && p.total > 0 {
+      let left = p.total - p.finished;
+      if left < bestLeft {
+        bestLeft = left;
+        best = p.fixer;
+      }
+    }
   }
-  return FXText(game, "FX-UI-Next-Fixer");
+  if best >= 0 {
+    return FXTextF(game, "FX-UI-Next-Gigs", [FXFixerName(game, best), ToString(Max(0, bestLeft))]);
+  }
+  return FXText(game, "FX-UI-Next-Work");
 }

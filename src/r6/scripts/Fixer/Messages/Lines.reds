@@ -14,6 +14,7 @@ public func FXMsgVariants(kind: Int32) -> Int32 {
     case FXMsgKind.JobFail(): return 2;
     case FXMsgKind.JobDisaster(): return 2;
     case FXMsgKind.MemberDeserted(): return 2;
+    case FXMsgKind.FixerReady(): return 2;
     default: return 1;
   }
 }
@@ -51,6 +52,16 @@ public func FXMsgKey(kind: Int32) -> String {
     case FXMsgKind.DinoDefeated(): return "FX-Msg-DinoDefeated-";
     case FXMsgKind.CityBoardOpen(): return "FX-Msg-CityBoardOpen-";
     case FXMsgKind.JobLost(): return "FX-Msg-JobLost-";
+    case FXMsgKind.DexBook(): return "FX-Msg-DexBook-";
+    case FXMsgKind.FixerReady(): return "FX-Msg-FixerReady-";
+    case FXMsgKind.FixerAllied(): return "FX-Msg-FixerAllied-";
+    case FXMsgKind.FixerWar(): return "FX-Msg-FixerWar-";
+    case FXMsgKind.FixerBlockLost(): return "FX-Msg-FixerBlockLost-";
+    case FXMsgKind.FixerPoached(): return "FX-Msg-FixerPoached-";
+    case FXMsgKind.FixerTipoff(): return "FX-Msg-FixerTipoff-";
+    case FXMsgKind.FixerDefeated(): return "FX-Msg-FixerDefeated-";
+    case FXMsgKind.FixerAmbush(): return "FX-Msg-FixerAmbush-";
+    case FXMsgKind.King(): return "FX-Msg-King-";
     default: return "FX-Msg-Welcome-";
   }
 }
@@ -141,7 +152,7 @@ public func FXJobTitle(game: GameInstance, job: ref<FXJob>) -> String {
   return FXTextF(game, "FX-Job-At", [FXJobTypeName(game, job.jobType), place]);
 }
 
-// What V keeps from a job with a given outcome: the pay (half on a partial), less Dino's cut, less the crew's cut.
+// What V keeps from a job with a given outcome: the pay (half on a partial), less an ally's cut, less the crew's cut.
 public func FXVTake(job: ref<FXJob>, outcome: Int32) -> Int32 {
   if !IsDefined(job) {
     return 0;
@@ -154,16 +165,16 @@ public func FXVTake(job: ref<FXJob>, outcome: Int32) -> Int32 {
       gross = job.pay / 2;
     }
   }
-  let afterDino = gross * (100 - Clamp(job.dinoCut, 0, 100)) / 100;
-  return afterDino * (100 - Clamp(job.cut, 0, 100)) / 100;
+  let afterFixer = gross * (100 - Clamp(job.fixerCut, 0, 100)) / 100;
+  return afterFixer * (100 - Clamp(job.cut, 0, 100)) / 100;
 }
 
 public func FXBlockName(game: GameInstance, index: Int32) -> String {
-  let records = FXBlockRecords();
-  if index < 0 || index >= ArraySize(records) {
+  let war = FXWarBook.Get(game);
+  if !IsDefined(war) || index < 0 || index >= war.BlockCount() {
     return FXText(game, "FX-Job-Unknown");
   }
-  let name = FXPlaceName(game, records[index]);
+  let name = FXPlaceName(game, war.BlockPlace(index));
   return StrLen(name) > 0 ? name : FXText(game, "FX-Job-Unknown");
 }
 
@@ -174,6 +185,12 @@ public func FXMessageSender(game: GameInstance, inbox: ref<FXInboxBook>, i: Int3
   }
   if sender == FXSender.Net() {
     return FXText(game, "FX-Sender-Net");
+  }
+  if sender == FXSender.Fixer() {
+    return FXFixerName(game, inbox.RefAAt(i));
+  }
+  if sender == FXSender.DexLine() {
+    return FXText(game, "FX-Sender-DexLine");
   }
   let p = FXFindPerson(game, inbox.RefAAt(i));
   return FXPersonName(p);
@@ -199,7 +216,7 @@ public func FXMessageBody(game: GameInstance, inbox: ref<FXInboxBook>, i: Int32)
       args = [FXPersonName(FXFindPerson(game, refA)), ToString(FXRosterCap(game))];
       break;
     case FXMsgKind.DinoOffer():
-      args = [ToString(FXSettingsBridge.DinoCut())];
+      args = [ToString(FXSettingsBridge.AllyCut())];
       break;
     case FXMsgKind.DinoRaise():
       args = [ToString(refA)];
@@ -231,6 +248,22 @@ public func FXMessageBody(game: GameInstance, inbox: ref<FXInboxBook>, i: Int32)
       break;
     case FXMsgKind.WarAmbush():
       args = [FXPersonName(FXFindPerson(game, refA)), FXFateLine(game, refB)];
+      break;
+    case FXMsgKind.FixerReady():
+    case FXMsgKind.FixerAllied():
+    case FXMsgKind.FixerWar():
+    case FXMsgKind.FixerTipoff():
+    case FXMsgKind.FixerDefeated():
+      args = [FXFixerTurf(game, refA)];
+      break;
+    case FXMsgKind.FixerBlockLost():
+      args = [FXBlockName(game, refB - 1)];
+      break;
+    case FXMsgKind.FixerPoached():
+      args = [FXPersonName(FXFindPerson(game, refB))];
+      break;
+    case FXMsgKind.FixerAmbush():
+      args = [FXPersonName(FXFindPerson(game, refA)), FXFixerName(game, refB / 10), FXFateLine(game, refB % 10)];
       break;
     default:
       break;

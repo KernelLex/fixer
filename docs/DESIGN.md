@@ -16,22 +16,25 @@ decisions taken since, and it is the plan the code follows. Where they disagree,
 | Question | Decision |
 |---|---|
 | Fixer Terminal | A **website on in-game computers** (Browser Extension Framework, optional), plus the same page in a **Codeware popup on a key** (setting, off by default; always on when the framework is missing). One page builder, two frames. |
-| Gig counting | Gigs in **any district** count: 5 for Recruiter, 10 for Candidate. Candidate also needs **3 City Center gigs** and Street Cred 30. All tunable. |
-| Messages | The game's own **SMS popup, handed over as data**, plus an **inbox** in the terminal where Accept/Decline lives. Real phone threads later, behind an off switch. |
-| Dino Dinovic | **Becomes a rival.** He offers a partnership, then turns on V. V wins the war and takes City Center. |
-| Story point required? | No. Gigs and Street Cred only. |
+| How the career starts (0.3.0) | **Dex's book.** When "Playing for Time" is done (`q101_done`, the mission where Dex lies dead), Dex's old clients call V: V's first business, jobs anywhere in the city. |
+| Where crew come from | **Finishing gigs.** Every gig V finishes can bring someone looking for work (35%); allies send people too. |
+| The fixers (0.3.0) | **All seven, same rules.** Regina (Watson), Wakako (Westbrook), Dino (City Center), Padre (Heywood), El Capitan (Santo Domingo), Mr. Hands (Pacifica, Dogtown), Dakota (Badlands). Finish **all** of a fixer's gigs and they reach out: **ally** or **take their turf**. |
+| "All of a fixer's gigs" | The game's own `<district>_reward` journal entry when it exists (seen finished on a real save: westbrook, heywood, combat_zone); otherwise every one of their gigs the journal lists (failed count), share adjustable. |
+| What an ally gives | Their jobs on V's map (they take a cut), recruits from their streets, less NCPD heat on their turf. V can break it later and go to war. |
+| What taking turf gives | Their blocks pay V daily, the game's own jobs on their turf become crew work, +2 crew slots. |
+| Messages | The game's own **SMS popup, handed over as data**, plus an **inbox** in the terminal where the answers live. Real phone threads later, behind an off switch. |
+| Story point required? | "Playing for Time" (Dex's death) opens the business. |
 
-## Stages (saved as numbers; never renumber)
+## Career (saved as numbers; never renumber)
 
-| # | Stage | How V gets there | What it opens |
-|---|---|---|---|
-| 0 | Merc | Default | Gigs are counted in the background (and retroactively on first load) |
-| 1 | Recruiter | 5 gigs | Recruit leads by text after gigs (35%), and one at once on reaching the stage |
-| 2 | Candidate | 10 gigs, 3 in City Center, Street Cred 30 | Dino watches. Daily roll for his offer (Phase 2) |
-| 3 | Dino's partner | Accept Dino's offer | Dino's job board: City Center jobs on the map; dispatch crews; Dino takes a cut |
-| 4 | At war with Dino | Dino turns on V (raising his cut, then retaliation) | War events against Dino's operation; contest City Center |
-| 5 | Fixer of City Center | Win the war | **The city board**: every non-story job in the city on the map |
-| later | Arasaka turf war | Arasaka Heat (BUILD.md stage 4) | Retaliation, raids |
+| # | Stage | How V gets there |
+|---|---|---|
+| 0 | Merc | Default. Gigs are counted in the background. |
+| 1 | Running Dex's book | `q101_done` |
+| 2 | King of Night City | Every fixer is V's ally or beaten |
+
+Per fixer (FXWarBook): **still sizing you up** → (all their gigs) **wants an answer** → **ally** or **war** → (war won)
+**their turf is yours**. An ally can be turned into a war at any time.
 
 ## What the game allows (checked in `tools/redmod/scripts`, game 2.50)
 
@@ -44,7 +47,9 @@ decisions taken since, and it is the plan the code follows. Where they disagree,
 | Their real map positions | Yes, to verify | `MappinSystem.GetMappinFromQuest`, and Codeware's `GetAllMappins()` with variants such as `Zzz06_NCPDGigVariant`, `HuntForPsychoVariant`, `FixerVariant`, `VehicleVariant`. The Phase 0 dump logs all of them. |
 | The game's own map inside the website | **No** | The world map is a 3D fullscreen menu; it can't be embedded in a web page, and no flat map image is referenced by the scripts. The website draws **its own tactical map**: pins at real coordinates over a stylised city. A "show on map" button places a pin on the real map and tracks it. A real map image could be added later through ArchiveXL if one is exported with WolvenKit. |
 | A crew "completes" a vanilla gig | **Simulated only** | The mod never writes quest state or facts (standing rule, and it would break quest scripts and rewards). The crew works the job off-screen: V gets paid, the crew takes risks, the site goes on cooldown on our board. The vanilla quest stays in V's journal, and V can still do it in person. |
-| Fight Dino | Yes, against his operation | Dino himself is a story character and is never spawned, harmed or ordered. The war is against his people and his business. His vanilla gig calls keep coming; the game owns them. |
+| Fight a fixer | Yes, against their operation | Every fixer is a story character and is never spawned, harmed or ordered. The war is against their people and business. Their vanilla gig calls keep coming; the game owns them. |
+| Dex DeShawn | Hook only | `Character.Dexter` is story-owned (tagged Immortal). The mod reads `q101_done` (Dex is dead) and takes over his clients as data. |
+| Which fixer a gig belongs to | Yes | Gig ids `sts_<district>_...`; the gang-retaliation shards (`sts_dino_gang_..._dtn_03`, `sts_regina_..._kab_02`...) tie each prefix to its fixer. Pacifica is Mr. Hands' by elimination [VERIFY]. |
 | Real phone texts | Hard | `JournalPhoneMessage` is abstract. The SMS **popup** works as data; real threads are deferred. |
 
 ## Phases
@@ -64,6 +69,8 @@ decisions taken since, and it is the plan the code follows. Where they disagree,
 - **Phase 4 — the city board** (built). As Fixer of City Center: the map covers the city; the board carries V's own
   jobs anywhere plus the game's own unfinished gigs, NCPD jobs, psychos, car and courier jobs as sites (cooldown 3 days
   per site, dropped when V finishes it in person); turf income per block per day; crew cap 8, 12 with every block.
+- **0.3.0 — the whole city** (built, at the user's design). Dex's book replaces Recruiter/Candidate and Dino's offer;
+  Dino's war is generalised to all seven fixers, each with ally-or-war once their gigs are done; King of Night City.
 - **Phase 5 — Arasaka and on-screen work.** BUILD.md's turf war and raids, spawned squads, crew support perks.
   Deliberately not started: spawning is where the crashes live, and it waits for Phases 0–4 to be tested in game.
 - **Phase 6 — polish.** Real phone threads, localization, balance, Nexus page.

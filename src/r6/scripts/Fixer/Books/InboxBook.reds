@@ -8,6 +8,8 @@ public abstract class FXSender {
   public static func Person() -> Int32 = 0;   // a lead or crew member: name from ref A (lead id) or ref B (crew id)
   public static func Dino() -> Int32 = 1;
   public static func Net() -> Int32 = 2;      // the fixer network: system notices
+  public static func Fixer() -> Int32 = 3;    // one of the city's fixers: ref A is the fixer index (FXFixer)
+  public static func DexLine() -> Int32 = 4;  // Dex's old number, now ringing for V
 }
 
 // Message kinds. Saved: never renumber, only append.
@@ -46,6 +48,17 @@ public abstract class FXMsgKind {
   // Phase 4: the city board
   public static func CityBoardOpen() -> Int32 = 29;
   public static func JobLost() -> Int32 = 30;         // B = job id: nobody left to report
+  // 0.3.0: Dex's book and every fixer. Fixer-sent kinds carry the fixer index in A.
+  public static func DexBook() -> Int32 = 31;
+  public static func FixerReady() -> Int32 = 32;      // A = fixer
+  public static func FixerAllied() -> Int32 = 33;     // A = fixer
+  public static func FixerWar() -> Int32 = 34;        // A = fixer
+  public static func FixerBlockLost() -> Int32 = 35;  // A = fixer, B = block index + 1
+  public static func FixerPoached() -> Int32 = 36;    // A = fixer, B = member
+  public static func FixerTipoff() -> Int32 = 37;     // A = fixer
+  public static func FixerDefeated() -> Int32 = 38;   // A = fixer
+  public static func FixerAmbush() -> Int32 = 39;     // A = member, B = fixer x 10 + FXCasualty
+  public static func King() -> Int32 = 40;
 }
 
 public abstract class FXMsgFlag {
@@ -128,6 +141,18 @@ public class FXInboxBook extends ScriptableSystem {
     let i = this.Count() - 1;
     while i >= 0 {
       if this.m_kind[i] == kind {
+        return i;
+      }
+      i -= 1;
+    }
+    return -1;
+  }
+
+  // The newest message of a kind with a given ref A (per-fixer offers), or -1.
+  public func LastIndexOfKindRef(kind: Int32, refA: Int32) -> Int32 {
+    let i = this.Count() - 1;
+    while i >= 0 {
+      if this.m_kind[i] == kind && this.m_refA[i] == refA {
         return i;
       }
       i -= 1;

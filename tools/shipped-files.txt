@@ -30,3 +30,6 @@ r6/scripts/Fixer/UI/BrowserSite.reds
 r6/scripts/Fixer/UI/Map.reds
 r6/scripts/Fixer/UI/Page.reds
 r6/scripts/Fixer/UI/RemoteTerminal.reds
+r6/scripts/Fixer/Data/Fixers.reds
+r6/scripts/Fixer/Ops/Fixers.reds
+r6/scripts/Fixer/UI/FixersTab.reds

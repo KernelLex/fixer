@@ -19,8 +19,8 @@ public class FXEnglish extends ModLocalizationPackage {
   protected func DefineTexts() -> Void {
     // ---- Stages ----
     this.Text("FX-Stage-0", "Merc");
-    this.Text("FX-Stage-1", "Recruiter");
-    this.Text("FX-Stage-2", "Candidate");
+    this.Text("FX-Stage-1", "Running Dex's book");
+    this.Text("FX-Stage-2", "King of Night City");
     this.Text("FX-Stage-3", "Dino's partner");
     this.Text("FX-Stage-4", "At war with Dino");
     this.Text("FX-Stage-5", "Fixer of City Center");
@@ -91,7 +91,7 @@ public class FXEnglish extends ModLocalizationPackage {
     this.Text("FX-UI-Next-OfferOpen", "Dino made you an offer. Answer it in the Inbox.");
     this.Text("FX-UI-Next-Partner", "Work Dino's jobs on the MAP. He'll get greedy in about {0} more job(s).");
     this.Text("FX-UI-Next-RaiseOpen", "Dino wants a bigger cut. Answer him in the Inbox. Refusing means war.");
-    this.Text("FX-UI-Next-War", "War with Dino: you hold {0} of {1} blocks. Dino's strength {2}. Take them all, or three in four with him down to 20.");
+    this.Text("FX-UI-Next-War", "War with {0}: you hold {1} of {2} blocks, their strength {3}. Take them all, or three in four with them down to 20.");
     this.Text("FX-UI-Next-Fixer", "City Center is yours. Every job in the city is on your MAP.");
     this.Text("FX-UI-Inbox-Empty", "No messages yet.");
     this.Text("FX-UI-Crew-Empty", "Nobody on the crew yet. Recruits will text you once your name gets around.");
@@ -129,10 +129,10 @@ public class FXEnglish extends ModLocalizationPackage {
     this.Text("FX-JobType-8", "Vehicle job");
     this.Text("FX-Job-At", "{0} at {1}");
     this.Text("FX-Job-Unknown", "a job");
-    this.Text("FX-Kind-0", "Dino's job");
-    this.Text("FX-Kind-1", "Your job");
+    this.Text("FX-Kind-0", "{0}'s job");
+    this.Text("FX-Kind-1", "Dex's book");
     this.Text("FX-Kind-2", "City job: {0}");
-    this.Text("FX-Kind-3", "Strike on Dino's turf");
+    this.Text("FX-Kind-3", "Strike on {0}'s turf");
     this.Text("FX-Site-Gig", "gig");
     this.Text("FX-Site-NCPD", "NCPD scanner");
     this.Text("FX-Site-Psycho", "cyberpsycho");
@@ -185,10 +185,10 @@ public class FXEnglish extends ModLocalizationPackage {
     this.Text("FX-Block-Dinos", "Dino holds it.");
     this.Text("FX-Block-Guard", "Guard: {0}");
     this.Text("FX-Block-NoGuard", "nobody");
-    this.Text("FX-Block-GuardHelp", "A guard can hold the block when Dino comes for it. Guards don't go on jobs.");
+    this.Text("FX-Block-GuardHelp", "A guard can hold the block when its old owner comes for it. Guards don't go on jobs.");
     this.Text("FX-Block-NextGuard", "NEXT GUARD");
     this.Text("FX-Block-Unguard", "NO GUARD");
-    this.Text("FX-Block-StrikeHelp", "Strike jobs on Dino's blocks show up on the map. Win one and the block is yours.");
+    this.Text("FX-Block-StrikeHelp", "Strike jobs on their blocks show up on the map. Win one and the block is yours.");
     this.Text("FX-Help-Partner", "Dino's jobs are on the map. Click one to see the crew it needs, the pay, and the odds for the people you pick.");
     this.Text("FX-Help-War", "Take Dino's blocks. Click a strike job to send a crew, or one of your blocks to put a guard on it.");
     this.Text("FX-Help-Fixer", "Every job in the city is yours: gigs, NCPD scanner, psychos, car jobs. Send a crew or go yourself.");
@@ -241,6 +241,61 @@ public class FXEnglish extends ModLocalizationPackage {
     this.Text("FX-Msg-WarBlockTaken-0", "{0} is yours. Dino's people cleared out.");
     this.Text("FX-Msg-WarAmbush-0", "Dino's people jumped {0}. {1}");
     this.Text("FX-Msg-CityBoardOpen-0", "City Center is yours. Every job in the city is on your map now: gigs, NCPD scanner, psychos, car jobs. Send the crew or go yourself.");
+
+    // ---- 0.3.0: Dex's book and the city's fixers ----
+    this.Text("FX-Fixer-0", "Regina Jones");
+    this.Text("FX-Fixer-1", "Wakako Okada");
+    this.Text("FX-Fixer-2", "Dino Dinovic");
+    this.Text("FX-Fixer-3", "Padre");
+    this.Text("FX-Fixer-4", "El Capitan");
+    this.Text("FX-Fixer-5", "Mr. Hands");
+    this.Text("FX-Fixer-6", "Dakota Smith");
+    this.Text("FX-FixerTurf-0", "Watson");
+    this.Text("FX-FixerTurf-1", "Westbrook");
+    this.Text("FX-FixerTurf-2", "City Center");
+    this.Text("FX-FixerTurf-3", "Heywood");
+    this.Text("FX-FixerTurf-4", "Santo Domingo");
+    this.Text("FX-FixerTurf-5", "Pacifica and Dogtown");
+    this.Text("FX-FixerTurf-6", "the Badlands");
+    this.Text("FX-Rel-0", "Still sizing you up");
+    this.Text("FX-Rel-1", "Wants an answer");
+    this.Text("FX-Rel-2", "Your ally");
+    this.Text("FX-Rel-3", "At war with you");
+    this.Text("FX-Rel-4", "Their turf is yours");
+    this.Text("FX-Sender-DexLine", "DEX'S OLD LINE");
+    this.Text("FX-UI-Tab-Fixers", "FIXERS");
+    this.Text("FX-UI-Ally", "ALLY");
+    this.Text("FX-UI-TakeTurf", "TAKE THEIR TURF");
+    this.Text("FX-UI-BreakAlly", "BREAK IT: TAKE THEIR TURF");
+    this.Text("FX-UI-Territory", "Allies: {0} | Turf taken: {1} of {2} fixers | Blocks you hold: {3}");
+    this.Text("FX-UI-Next-Merc", "Not yet. Your fixer career opens after \"Playing for Time\".");
+    this.Text("FX-UI-Next-Answer", "{0} wants an answer: ally, or take their turf (Inbox or FIXERS).");
+    this.Text("FX-UI-Next-Gigs", "Closest: {0}. Finish their last {1} gig(s) and they'll reach out.");
+    this.Text("FX-UI-Next-Work", "Finish a fixer's gigs: once you've done all of them, that fixer reaches out.");
+    this.Text("FX-UI-Next-King", "Night City is yours.");
+    this.Text("FX-Fixers-Gigs", "Gigs: {0} of {1} finished");
+    this.Text("FX-Fixers-GigsReward", "Gigs: {0} of {1} finished (the game's district reward decides)");
+    this.Text("FX-Fixers-War", "Blocks: {0} of {1} | their strength {2}");
+    this.Text("FX-Fixers-Ally", "Jobs done for them: {0}");
+    this.Text("FX-Fixers-Taken", "Blocks paying you: {0}");
+    this.Text("FX-Help-Dex", "Dex's old clients are on the map in blue. Click a job to see the crew it needs, the pay, and the odds for the people you pick. Allies' jobs show yellow, strikes red.");
+    this.Text("FX-Help-King", "Night City is yours. Every job worth having is on this map.");
+    this.Text("FX-Legend-Ally", "Ally's job");
+    this.Text("FX-Legend-FixerBlock", "Their block");
+    this.Text("FX-Block-Turf", "{0}'s turf");
+    this.Text("FX-Block-Theirs", "{0} holds it.");
+    this.Text("FX-Card-FixerTakes", "{0} takes {1}%");
+    this.Text("FX-Msg-DexBook-0", "Dex is dead. His clients aren't. Their calls ring through to you now: jobs, money, people who need a fixer. Open your terminal.");
+    this.Text("FX-Msg-FixerReady-0", "You've done every job I had in {0}, merc. People say your name more than mine now. So: we work together, or we have a problem. Your call.");
+    this.Text("FX-Msg-FixerReady-1", "Every gig I had in {0}, done. Fine work. Now I want to know whose side you're on. Partner up, or don't. I'll know either way.");
+    this.Text("FX-Msg-FixerAllied-0", "Smart. My jobs in {0} are yours to pick from. I take my cut, you keep my streets quiet.");
+    this.Text("FX-Msg-FixerWar-0", "So that's how it is. Come take {0} if you can, merc.");
+    this.Text("FX-Msg-FixerBlockLost-0", "{0} is mine again. Try harder.");
+    this.Text("FX-Msg-FixerPoached-0", "{0} works for me now. Pays to be on the winning side.");
+    this.Text("FX-Msg-FixerTipoff-0", "Hope you like the NCPD. They know what you're doing in {0} now.");
+    this.Text("FX-Msg-FixerDefeated-0", "{0} is yours. I'm done. For now.");
+    this.Text("FX-Msg-FixerAmbush-0", "{1}'s people jumped {0}. {2}");
+    this.Text("FX-Msg-King-0", "Every fixer in Night City works with you or answers to you. Nobody runs this city but you.");
   }
 }
 

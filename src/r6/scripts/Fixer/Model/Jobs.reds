@@ -18,10 +18,10 @@ public abstract class FXJobType {
 
 // Where a job came from.
 public abstract class FXJobKind {
-  public static func Dino() -> Int32 = 0;         // handed down by Dino while V is his partner; he takes a cut
-  public static func Street() -> Int32 = 1;       // V's own business, generated at a real place
-  public static func Vanilla() -> Int32 = 2;      // the crew works a site of one of the game's own jobs
-  public static func Strike() -> Int32 = 3;       // war: hit one of Dino's blocks
+  public static func Ally() -> Int32 = 0;         // handed over by an allied fixer, in their district; they take a cut
+  public static func Street() -> Int32 = 1;       // V's own business (Dex's old clients), at a real place
+  public static func Vanilla() -> Int32 = 2;      // the crew works a site of one of the game's own jobs, on V's turf
+  public static func Strike() -> Int32 = 3;       // war: hit one of a rival fixer's blocks
 }
 
 public abstract class FXJobState {

@@ -1,11 +1,11 @@
 # Fixer (working title)
 
-V works up from merc to Fixer of City Center: builds a name with gigs, hires a crew, takes Dino Dinovic's turf, then
-runs every non-story job in the city from a map on a computer. Design and plan: [docs/DESIGN.md](docs/DESIGN.md).
+V takes over Dex DeShawn's clients after his death, hires a crew from the gigs V finishes, and then allies with or
+takes over every fixer in Night City, running the business from a map on a computer. Design and plan: [docs/DESIGN.md](docs/DESIGN.md).
 Original brief: [BUILD.md](BUILD.md). Modding guide and crash rules: [docs/fixer-guide.md](docs/fixer-guide.md).
 What could come next: [docs/IDEAS.md](docs/IDEAS.md).
 
-**Status: 0.2.0, Phases 0–4 built and compile-checked (alone, with Browser Extension Framework, and with every script
+**Status: 0.3.0, Dex's book and all seven fixers built and compile-checked (alone, with Browser Extension Framework, and with every script
 mod on the dev machine). Nothing is tested in game yet.**
 
 ## Requirements
@@ -44,7 +44,7 @@ tools/install-dev.ps1  compile-check, then copy the scripts into r6\scripts\Fixe
    `ImmersiveVDialogueExpanded` calls `LogChannel`, which doesn't exist on 2.50. Until that mod is updated or
    removed, **no** script mod loads, Fixer included (see `r6\logs\redscript_rCURRENT.log`).
 2. Run `tools\install-dev.ps1`. Launch, load a save.
-3. Check `gamelog.log` for `[Fixer][Core] Fixer 0.2.0 loaded.`, then `Session ready: ...` with the number of gigs found.
+3. Check `gamelog.log` for `[Fixer][Core] Fixer 0.3.0 loaded.`, then `Session ready: ...` with the number of gigs found.
 4. A "FIXER//NET: Terminal online" text popup should appear within seconds. **[VERIFY]** If no popup shows but the
    inbox has the message, the popup route doesn't reach the game's notification queue: tell me.
 5. Press **F7**: the terminal opens. Check the mouse works, the tabs switch and Esc closes it. Status should show your
@@ -53,15 +53,18 @@ tools/install-dev.ps1  compile-check, then copy the scripts into r6\scripts\Fixe
    `gamelog.log`. It lists every gig, NCPD job, psycho and car job the game knows, with map positions.
 7. Finish a real gig: the log should say `Finished gig ...`. With 5 gigs counted you get Dino's text and a first
    recruit. HIRE them in the Inbox. Save, reload, then quit and restart the game: they must still be on the Crew tab.
-8. **Phase 2.** Debug tab: ADD CREW a few times, then DINO OFFER. ACCEPT it in the Inbox. A MAP tab appears with
-   yellow pins (Dino's jobs) at City Center data terms. **[VERIFY]** the map shows dots and district names, not the
-   "no map data" note. Click a pin: pick crew until SEND CREW shows, watch SUCCESS % change with who you pick and the
-   cut. Send. FINISH JOBS: a report text arrives, eddies land, OPS shows the result and the ledger.
-9. **Phase 3.** NEXT DAY a few times after six Dino jobs (or START WAR): Dino raises his cut; REFUSE. Red squares
-   (blocks) and red strike pins appear. Win a strike: the block turns blue. Click a blue block, NEXT GUARD. NEXT DAY:
-   Dino hits back now and then (texts). WIN WAR to skip ahead.
-10. **Phase 4.** After the war: the map shows the whole city, with orange/blue/pink/green/cyan pins for the game's own
-    gigs, NCPD jobs, psychos, car and courier jobs. NEXT DAY pays turf income (OPS ledger).
+8. **Dex's book.** On a save past "Playing for Time" a text from DEX'S OLD LINE arrives and MAP, FIXERS and OPS
+   tabs appear (Debug tab: DEX'S BOOK forces it on an earlier save). Blue pins on the MAP are Dex's old clients' jobs.
+   **[VERIFY]** the map shows dots and district names, not the "no map data" note. Click a pin, pick crew until SEND
+   CREW shows, watch SUCCESS % change with who you pick and the cut. Send. FINISH JOBS: a report text, eddies, OPS.
+9. **Fixers.** FIXERS lists all seven with your gig progress. Any fixer whose gigs you've all done texts you (on the
+   test save: Wakako and Padre, whose district rewards are finished). Debug: ALL READY makes everyone reach out.
+   Answer one with ALLY: their yellow jobs appear in their district, they take a cut. Answer another with TAKE THEIR
+   TURF: red squares (their blocks) and red strike pins appear. Win a strike: the block turns blue; click it, NEXT
+   GUARD. NEXT DAY: one fixer at war may hit back. WIN WARS to skip ahead.
+10. **Taken turf.** Once a war is won, the game's own gigs, NCPD jobs, psychos and car jobs on that turf show as
+    orange/blue/pink/green/cyan pins for your crew, and NEXT DAY pays turf income (OPS ledger). Every fixer allied or
+    beaten: a "King of Night City" text.
 11. With Browser Extension Framework installed: open V's apartment computer → Internet. A FIXER//NET tile should be on
     the home page. **[VERIFY]** the tile icon, the page size, and that buttons and pins click.
 

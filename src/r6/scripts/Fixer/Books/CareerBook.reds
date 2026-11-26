@@ -8,24 +8,25 @@ module Fixer
 //  - No String, ResRef or Variant fields. Flat arrays of plain types only, keyed by position.
 //  - Field defaults can't be negative.
 
-// Stages. Saved as Int32, so these numbers never change meaning.
+// Stages. Saved as Int32, so these numbers never change meaning. Since 0.3.0 the career has three; everything past
+// "running Dex's book" is V's standing with each fixer (FXWarBook).
 public abstract class FXStage {
-  public static func Merc() -> Int32 = 0;
-  public static func Recruiter() -> Int32 = 1;
-  public static func Candidate() -> Int32 = 2;
-  public static func Partner() -> Int32 = 3;     // Phase 2: accepted Dino's offer, works under him
-  public static func War() -> Int32 = 4;         // Phase 3+: Dino turned on V
-  public static func Fixer() -> Int32 = 5;       // Phase 3+: City Center is V's; the city board opens
-  public static func Max() -> Int32 = 5;
+  public static func Merc() -> Int32 = 0;        // Dex is still around: the story hasn't reached "Playing for Time"
+  public static func DexBook() -> Int32 = 1;     // q101_done: V runs Dex's old clients
+  public static func King() -> Int32 = 2;        // every fixer is V's ally or beaten
+  public static func Max() -> Int32 = 2;
 }
 
-// Bit flags stored per counted gig.
+// Bit flags stored per counted gig. Bits 4..7 hold the gig's fixer index + 1 (FXGigFixerFlag).
 public abstract class FXGigFlag {
   public static func CityCenter() -> Int32 = 1;
   public static func Failed() -> Int32 = 2;
   public static func Live() -> Int32 = 4;        // seen finishing while the mod ran, not found by the load-time scan
   public static func Debug() -> Int32 = 8;       // added by a debug command
 }
+
+public func FXGigFixerFlag(fixer: Int32) -> Int32 = fixer >= 0 ? (fixer + 1) * 16 : 0;
+public func FXGigFixerOf(flags: Int32) -> Int32 = (flags / 16) % 16 - 1;
 
 public class FXCareerBook extends ScriptableSystem {
   private persistent let m_saveVersion: Int32;
@@ -37,12 +38,6 @@ public class FXCareerBook extends ScriptableSystem {
   private persistent let m_gigHash: array<Int32>;
   private persistent let m_gigFlags: array<Int32>;
   private persistent let m_gigTime: array<Float>;
-
-  // The candidacy roll (Phase 2): the last day rolled, failed rolls since the last offer (the pity timer), and the
-  // first day a new offer may come after V declined one.
-  private persistent let m_lastRollDay: Int32;
-  private persistent let m_failedRolls: Int32;
-  private persistent let m_offerCooldownDay: Int32;
 
   // The last game day the daily work ran for.
   private persistent let m_lastDay: Int32;
@@ -67,6 +62,15 @@ public class FXCareerBook extends ScriptableSystem {
     ArrayResize(this.m_gigHash, n);
     ArrayResize(this.m_gigFlags, n);
     ArrayResize(this.m_gigTime, n);
+    // Stage numbers changed meaning in layout 2 (0.3.0): start over, the story facts put V back where they belong.
+    // Gigs recorded before 2 carry no fixer index: drop them, the load-time scan records them again.
+    if from < 2 {
+      this.m_stage = FXStage.Merc();
+      ArrayClear(this.m_gigHash);
+      ArrayClear(this.m_gigFlags);
+      ArrayClear(this.m_gigTime);
+      n = 0;
+    }
     this.m_stage = Clamp(this.m_stage, 0, FXStage.Max());
     this.m_saveVersion = FXSaveVersion();
     FXLog("Core", s"Career book migrated from save layout \(from) to \(this.m_saveVersion) (\(n) gigs on record, stage \(this.m_stage)).");
@@ -156,32 +160,18 @@ public class FXCareerBook extends ScriptableSystem {
     return count;
   }
 
-  // Failed gigs among the last n recorded (the candidacy bonus wants none in the last three).
-  public func FailedInLast(n: Int32) -> Int32 {
-    let total = this.GigCount();
+  // Finished gigs (succeeded or failed) on record for one fixer.
+  public func CountForFixer(k: Int32) -> Int32 {
+    let n = this.GigCount();
     let count = 0;
-    let i = Max(0, total - n);
-    while i < total {
-      if (this.m_gigFlags[i] & FXGigFlag.Failed()) != 0 {
+    let i = 0;
+    while i < n {
+      if FXGigFixerOf(this.m_gigFlags[i]) == k {
         count += 1;
       }
       i += 1;
     }
     return count;
-  }
-
-  // ---- Candidacy roll ----
-  public func GetLastRollDay() -> Int32 = this.m_lastRollDay;
-  public func SetLastRollDay(day: Int32) -> Void {
-    this.m_lastRollDay = day;
-  }
-  public func GetFailedRolls() -> Int32 = this.m_failedRolls;
-  public func SetFailedRolls(n: Int32) -> Void {
-    this.m_failedRolls = Max(0, n);
-  }
-  public func GetOfferCooldownDay() -> Int32 = this.m_offerCooldownDay;
-  public func SetOfferCooldownDay(day: Int32) -> Void {
-    this.m_offerCooldownDay = day;
   }
 
   // Debug only: forget everything this book holds.
@@ -191,8 +181,5 @@ public class FXCareerBook extends ScriptableSystem {
     ArrayClear(this.m_gigTime);
     this.m_stage = 0;
     this.m_stageSince = 0.0;
-    this.m_lastRollDay = 0;
-    this.m_failedRolls = 0;
-    this.m_offerCooldownDay = 0;
   }
 }

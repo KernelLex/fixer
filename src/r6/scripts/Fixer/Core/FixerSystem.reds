@@ -14,18 +14,17 @@ public abstract class FXAction {
   public static func DebugDump() -> Int32 = 15;
   public static func DebugWipe() -> Int32 = 16;
   public static func DebugDay() -> Int32 = 17;
-  public static func DebugOffer() -> Int32 = 18;
-  public static func DebugWar() -> Int32 = 19;
-  public static func DinoAccept() -> Int32 = 20;
-  public static func DinoDecline() -> Int32 = 21;
-  public static func RaiseAccept() -> Int32 = 22;
-  public static func RaiseRefuse() -> Int32 = 23;
+  public static func DebugWar() -> Int32 = 19;         // arg = fixer, or -1 for the first who can be fought
   public static func MarkJob() -> Int32 = 24;
   public static func SetGuard() -> Int32 = 25;        // arg = block, arg2 = member id (0 = none)
   public static func DebugWin() -> Int32 = 26;
   public static func DebugResolve() -> Int32 = 27;
   public static func DebugCrew() -> Int32 = 28;
   public static func DebugHeat() -> Int32 = 29;
+  public static func FixerAlly() -> Int32 = 30;        // arg = fixer
+  public static func FixerWar() -> Int32 = 31;         // arg = fixer
+  public static func DebugDex() -> Int32 = 32;
+  public static func DebugReady() -> Int32 = 33;       // arg = fixer, or -1 for every fixer
 }
 
 // Remove the first n entries of a queue.
@@ -79,6 +78,7 @@ public class FXFixerSystem extends ScriptableSystem {
   private let m_markPin: NewMappinID;
   private let m_markPinOn: Bool;
   private let m_markPinJob: Int32;
+  private let m_fixerProgress: array<ref<FXFixerProgress>>;
 
   public static func Get(game: GameInstance) -> ref<FXFixerSystem> {
     let container = GameInstance.GetScriptableSystemsContainer(game);
@@ -199,6 +199,16 @@ public class FXFixerSystem extends ScriptableSystem {
 
   public func MarkDirty() -> Void {
     this.m_dirty = true;
+  }
+
+  // Every fixer's gig progress from the last journal read (Ops/Fixers.reds FXCheckFixers), for the terminal.
+  public func SetFixerProgress(progress: array<ref<FXFixerProgress>>) -> Void {
+    this.m_fixerProgress = progress;
+    this.m_dirty = true;
+  }
+
+  public func FixerProgress() -> array<ref<FXFixerProgress>> {
+    return this.m_fixerProgress;
   }
 
   public func RegisterPage(page: ref<FXTerminalPage>) -> Void {
@@ -325,10 +335,12 @@ public class FXFixerSystem extends ScriptableSystem {
     }
     // Replayed journal changes from the load are covered by the scan, which runs first.
     FXScanFinishedGigs(game);
+    this.CheckProgression();
+    FXCheckFixers(game, "load");
     if ops.MarkedJob() != 0 {
       this.MarkJob(ops.MarkedJob());
     }
-    if career.GetStage() >= FXStage.Partner() && ops.CountByState(FXJobState.Open()) == 0 {
+    if career.GetStage() >= FXStage.DexBook() && ops.CountByState(FXJobState.Open()) == 0 {
       FXRefreshBoard(game, "load with an empty board");
     }
     FXLog("Core", s"Session ready: stage \(career.GetStage()), \(career.GigCount()) gigs on record, \(crew.ActiveRosterSize()) crew, \(inbox.Count()) messages, \(ops.CountByState(FXJobState.Running())) jobs under way, Street Cred \(FXStreetCred(game)).");
@@ -397,13 +409,15 @@ public class FXFixerSystem extends ScriptableSystem {
       return;
     }
     let career = FXCareerBook.Get(game);
-    if career.GetStage() < FXStage.Recruiter() {
-      FXLogDebug("Lead", "No lead roll: still a merc.");
+    if career.GetStage() < FXStage.DexBook() {
+      FXLogDebug("Lead", "No lead roll: V isn't running Dex's book yet.");
       return;
     }
+    // Every gig V finishes can bring someone looking for work, and may complete a fixer's gigs.
     if FXRollChance(game, FXSettingsBridge.RecruitChance(), s"recruit lead after \(look.id)") {
       FXOfferLead(game, look.hash, s"after gig \(look.id)");
     }
+    FXCheckFixers(game, s"finished \(look.id)");
   }
 
   private func CheckProgression() -> Void {
@@ -412,23 +426,17 @@ public class FXFixerSystem extends ScriptableSystem {
     if !IsDefined(career) {
       return;
     }
-    let now = FXNow(game);
-    if career.GetStage() == FXStage.Merc() && FXMeetsRecruiter(career) {
-      career.SetStage(FXStage.Recruiter(), now);
-      FXLog("Stage", s"Merc -> Recruiter (\(FXCountedGigs(career)) gigs).");
-      FXSend(game, FXSender.Dino(), FXMsgKind.StageRecruiter(), 0, 0);
-      // Reaching Recruiter shows what it unlocks straight away: the first person asking for work.
-      FXOfferLead(game, 0, "reached Recruiter");
+    // Dex is dead ("Playing for Time" done): his clients are V's to take.
+    if career.GetStage() == FXStage.Merc() && FXDexIsGone(game) {
+      career.SetStage(FXStage.DexBook(), FXNow(game));
+      FXLog("Stage", s"Merc -> running Dex's book (\(FXCountedGigs(career)) gigs on record).");
+      FXSend(game, FXSender.DexLine(), FXMsgKind.DexBook(), 0, 0);
+      // The first person asking for work comes straight away, so the new stage shows what it opens.
+      FXOfferLead(game, 0, "Dex's book opened");
+      FXRefreshBoard(game, "Dex's book opened");
       this.m_dirty = true;
     }
-    if career.GetStage() == FXStage.Recruiter() && FXMeetsCandidate(game, career) {
-      career.SetStage(FXStage.Candidate(), now);
-      FXLog("Stage", s"Recruiter -> Candidate (\(FXCountedGigs(career)) gigs, \(career.CountSucceeded(true)) in City Center, Street Cred \(FXStreetCred(game))).");
-      FXSend(game, FXSender.Dino(), FXMsgKind.StageCandidate(), 0, 0);
-      this.m_dirty = true;
-    }
-    // Stages past Candidate move through Dino (Ops/Dino.reds), never from here.
-    // Log what the next stage waits for, only when it changes: no spam, but always an answer to "why not yet".
+    // Log what comes next, only when it changes: no spam, but always an answer to "why not yet".
     let gate = FXNextStepText(game, career);
     if NotEquals(gate, this.m_lastGate) {
       this.m_lastGate = gate;
@@ -477,17 +485,11 @@ public class FXFixerSystem extends ScriptableSystem {
           inbox.MarkAllRead();
         }
         break;
-      case FXAction.DinoAccept():
-        FXAcceptOffer(game);
+      case FXAction.FixerAlly():
+        FXAllyWith(game, arg);
         break;
-      case FXAction.DinoDecline():
-        FXDeclineOffer(game, "V said no");
-        break;
-      case FXAction.RaiseAccept():
-        FXAcceptRaise(game);
-        break;
-      case FXAction.RaiseRefuse():
-        FXRefuseRaise(game);
+      case FXAction.FixerWar():
+        FXGoToWar(game, arg, FXWarBook.Get(game).Rel(arg) == FXRelation.Allied() ? "V broke the alliance" : "V moved in");
         break;
       case FXAction.MarkJob():
         this.MarkJob(arg);

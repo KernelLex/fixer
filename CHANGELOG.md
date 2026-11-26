@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.0 (test build)
+
+The whole city, not just City Center. Test data from 0.2.0 resets on load (your crew and messages stay); the mod
+rebuilds everything else from your journal.
+
+- Your fixer career now starts where Dex's ends: after "Playing for Time", his old clients start calling you. Their
+  jobs are on your map from day one.
+- Every gig you finish can bring someone looking for work.
+- Every fixer in the city counts: Regina, Wakako, Dino, Padre, El Capitan, Mr. Hands and Dakota. Finish all of a
+  fixer's gigs and they reach out. Ally with them (their jobs on your map, their people, less heat on their streets)
+  or take their turf in a war. Win and their district pays you.
+- A new FIXERS tab shows every fixer, how far you are through their gigs, and where you stand with them.
+- Ally with or beat all seven and you're the King of Night City.
+- Fixed: the game's district completion rewards were counted as gigs.
+
 ## 0.2.0 (test build)
 
 First test build. Expect rough edges, and keep a backup save.

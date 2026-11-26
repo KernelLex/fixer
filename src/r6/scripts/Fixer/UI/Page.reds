@@ -20,6 +20,7 @@ public abstract class FXTab {
   public static func Debug() -> Int32 = 3;
   public static func Map() -> Int32 = 4;
   public static func Ops() -> Int32 = 5;
+  public static func Fixers() -> Int32 = 6;
 }
 
 // Page-local button kinds (UI state only). Game actions use FXAction.
@@ -184,9 +185,9 @@ public class FXTerminalPage extends IScriptable {
       stageLine.SetText(FXStageName(game, stage));
     }
 
-    // Tabs. MAP and OPS open once V works with Dino; DEBUG with the setting.
-    let business = stage >= FXStage.Partner();
-    if !business && (this.m_tab == FXTab.Map() || this.m_tab == FXTab.Ops()) {
+    // Tabs. MAP, FIXERS and OPS open with Dex's book; DEBUG with the setting.
+    let business = stage >= FXStage.DexBook();
+    if !business && (this.m_tab == FXTab.Map() || this.m_tab == FXTab.Ops() || this.m_tab == FXTab.Fixers()) {
       this.m_tab = FXTab.Status();
     }
     if !FXSettingsBridge.Debug() && this.m_tab == FXTab.Debug() {
@@ -202,7 +203,7 @@ public class FXTerminalPage extends IScriptable {
     if IsDefined(crew) {
       crewLabel = s"\(crewLabel) \(crew.ActiveRosterSize())/\(FXRosterCap(game))";
     }
-    let w = 215.0;
+    let w = 180.0;
     this.AddButton(tabs, FXText(game, "FX-UI-Tab-Status"), FXPageAction.Tab(), FXTab.Status(), w, this.m_tab == FXTab.Status());
     this.AddButton(tabs, inboxLabel, FXPageAction.Tab(), FXTab.Inbox(), w, this.m_tab == FXTab.Inbox());
     if business {
@@ -210,6 +211,7 @@ public class FXTerminalPage extends IScriptable {
     }
     this.AddButton(tabs, crewLabel, FXPageAction.Tab(), FXTab.Crew(), w, this.m_tab == FXTab.Crew());
     if business {
+      this.AddButton(tabs, FXText(game, "FX-UI-Tab-Fixers"), FXPageAction.Tab(), FXTab.Fixers(), w, this.m_tab == FXTab.Fixers());
       this.AddButton(tabs, FXText(game, "FX-UI-Tab-Ops"), FXPageAction.Tab(), FXTab.Ops(), w, this.m_tab == FXTab.Ops());
     }
     if FXSettingsBridge.Debug() {
@@ -237,6 +239,9 @@ public class FXTerminalPage extends IScriptable {
       case FXTab.Ops():
         FXMapView.BuildOpsTab(this, content);
         break;
+      case FXTab.Fixers():
+        FXFixersView.Build(this, content);
+        break;
       default:
         this.BuildStatus(content);
         break;
@@ -258,7 +263,11 @@ public class FXTerminalPage extends IScriptable {
     this.AddLine(content, FXTextF(game, "FX-UI-Gigs", [ToString(FXCountedGigs(career)), ToString(career.CountSucceeded(true)), ToString(career.CountFailed())]), 34, FXColors.Text());
     this.AddLine(content, FXTextF(game, "FX-UI-StreetCred", [ToString(FXStreetCred(game))]), 34, FXColors.Text());
     this.AddLine(content, FXTextF(game, "FX-UI-Crew", [ToString(crew.ActiveRosterSize()), ToString(FXRosterCap(game))]), 34, FXColors.Text());
-    if stage >= FXStage.Partner() && IsDefined(ops) {
+    let war = FXWarBook.Get(game);
+    if stage >= FXStage.DexBook() && IsDefined(war) {
+      this.AddLine(content, FXTextF(game, "FX-UI-Territory", [ToString(war.CountRel(FXRelation.Allied())), ToString(war.CountRel(FXRelation.Taken())), ToString(FXFixer.Count()), ToString(war.BlocksHeld(-1, FXHolder.V()))]), 34, FXColors.Text());
+    }
+    if stage >= FXStage.DexBook() && IsDefined(ops) {
       this.AddLine(content, FXTextF(game, "FX-UI-Heat", [ToString(ops.HeatNcpd()), ToString(ops.HeatArasaka())]), 34, FXColors.Text());
       this.AddLine(content, FXTextF(game, "FX-UI-Earned", [FXMoneyText(ops.TotalEarned())]), 34, FXColors.Text());
     }
@@ -339,25 +348,16 @@ public class FXTerminalPage extends IScriptable {
       }
     }
 
-    // Dino's offer and his raise: answer buttons on the newest one while it is still open.
-    let war = FXWarBook.Get(game);
-    if IsDefined(war) {
-      if kind == FXMsgKind.DinoOffer() && war.DinoState() == FXDinoState.OfferPending() && inbox.LastIndexOfKind(kind) == i {
+    // A fixer reaching out: answer buttons on their newest offer while it is still open.
+    if kind == FXMsgKind.FixerReady() {
+      let war = FXWarBook.Get(game);
+      let k = inbox.RefAAt(i);
+      if IsDefined(war) && war.Rel(k) == FXRelation.Ready() && inbox.LastIndexOfKindRef(kind, k) == i {
         let row = new inkHorizontalPanel();
         row.SetMargin(inkMargin(0.0, 8.0, 0.0, 0.0));
         row.Reparent(block);
-        this.AddButton(row, FXText(game, "FX-UI-Accept"), FXAction.DinoAccept(), 0, 220.0, false);
-        this.AddButton(row, FXText(game, "FX-UI-Decline"), FXAction.DinoDecline(), 0, 220.0, false);
-      }
-      if kind == FXMsgKind.DinoRaise() && war.DinoState() == FXDinoState.RaisePending() && inbox.LastIndexOfKind(kind) == i {
-        let row = new inkHorizontalPanel();
-        row.SetMargin(inkMargin(0.0, 8.0, 0.0, 0.0));
-        row.Reparent(block);
-        this.AddButton(row, FXText(game, "FX-UI-Accept"), FXAction.RaiseAccept(), 0, 220.0, false);
-        this.AddButton(row, FXText(game, "FX-UI-Refuse"), FXAction.RaiseRefuse(), 0, 220.0, false);
-        let warn = FXPageText(FXText(game, "FX-UI-RefuseMeansWar"), 26, FXColors.Red(), n"Regular");
-        warn.SetMargin(inkMargin(20.0, 14.0, 0.0, 0.0));
-        warn.Reparent(row);
+        this.AddButton(row, FXText(game, "FX-UI-Ally"), FXAction.FixerAlly(), k, 200.0, true);
+        this.AddButton(row, FXText(game, "FX-UI-TakeTurf"), FXAction.FixerWar(), k, 280.0, false);
       }
     }
   }
@@ -406,11 +406,10 @@ public class FXTerminalPage extends IScriptable {
     let row2 = new inkHorizontalPanel();
     row2.SetMargin(inkMargin(0.0, 14.0, 0.0, 0.0));
     row2.Reparent(content);
-    this.AddButton(row2, "STAGE +1", FXAction.DebugStageUp(), 0, 220.0, false);
-    this.AddButton(row2, "STAGE -1", FXAction.DebugStageDown(), 0, 220.0, false);
-    this.AddButton(row2, "DINO OFFER", FXAction.DebugOffer(), 0, 240.0, false);
-    this.AddButton(row2, "START WAR", FXAction.DebugWar(), 0, 220.0, false);
-    this.AddButton(row2, "WIN WAR", FXAction.DebugWin(), 0, 220.0, false);
+    this.AddButton(row2, "DEX'S BOOK", FXAction.DebugDex(), 0, 220.0, false);
+    this.AddButton(row2, "ALL READY", FXAction.DebugReady(), -1, 220.0, false);
+    this.AddButton(row2, "START WAR", FXAction.DebugWar(), -1, 220.0, false);
+    this.AddButton(row2, "WIN WARS", FXAction.DebugWin(), 0, 220.0, false);
     let row3 = new inkHorizontalPanel();
     row3.SetMargin(inkMargin(0.0, 14.0, 0.0, 0.0));
     row3.Reparent(content);
@@ -418,7 +417,7 @@ public class FXTerminalPage extends IScriptable {
     this.AddButton(row3, "+20 HEAT", FXAction.DebugHeat(), 0, 220.0, false);
     this.AddButton(row3, "DUMP TO LOG", FXAction.DebugDump(), 0, 240.0, false);
     this.AddButton(row3, "WIPE ALL", FXAction.DebugWipe(), 0, 220.0, false);
-    let note = FXPageText("Debug actions run on the next heartbeat. NEXT DAY runs a day's work (Dino's roll, his moves, heat, the board) without moving the clock. DUMP TO LOG writes every gig, NCPD job and map pin the game knows to gamelog.log.", 26, FXColors.Dim(), n"Regular");
+    let note = FXPageText("Debug actions run on the next heartbeat. NEXT DAY runs a day's work (fixers reaching out, allies, retaliation, heat, turf income, the board) without moving the clock. ALL READY makes every fixer reach out as if you'd done all their gigs. DUMP TO LOG writes every gig, NCPD job and map pin the game knows to gamelog.log.", 26, FXColors.Dim(), n"Regular");
     note.SetWrapping(true, this.m_width);
     note.SetMargin(inkMargin(0.0, 18.0, 0.0, 0.0));
     note.Reparent(content);

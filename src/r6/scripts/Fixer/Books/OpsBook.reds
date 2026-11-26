@@ -17,13 +17,14 @@ public class FXJob {
   public let flags: Int32;
   public let state: Int32;
   public let questHash: Int32;        // journal hash of a vanilla site, 0 otherwise
-  public let block: Int32;        // turf block index for a war strike, 0 otherwise (block index + 1)
+  public let block: Int32;        // turf block index + 1 for a war strike, 0 otherwise
   public let variant: Int32;
   public let outcome: Int32;
   public let casualty: Int32;     // member id
   public let casualtyKind: Int32;
   public let cut: Int32;          // crew cut in percent
-  public let dinoCut: Int32;      // Dino's cut in percent, taken first
+  public let fixerCut: Int32;     // an allied fixer's cut in percent, taken first
+  public let fixer: Int32;        // fixer index + 1 for ally jobs and strikes, 0 = none
   public let place: TweakDBID;    // fast-travel point record, or none
   public let district: Int32;     // gamedataDistrict as Int32
   public let x: Float;
@@ -69,7 +70,8 @@ public class FXOpsBook extends ScriptableSystem {
   private persistent let m_jCasualty: array<Int32>;
   private persistent let m_jCasualtyKind: array<Int32>;
   private persistent let m_jCut: array<Int32>;
-  private persistent let m_jDinoCut: array<Int32>;
+  private persistent let m_jFixerCut: array<Int32>;
+  private persistent let m_jFixer: array<Int32>;
   private persistent let m_jPlace: array<TweakDBID>;
   private persistent let m_jDistrict: array<Int32>;
   private persistent let m_jX: array<Float>;
@@ -103,6 +105,10 @@ public class FXOpsBook extends ScriptableSystem {
   public func Migrate() -> Void {
     if this.m_saveVersion == FXSaveVersion() {
       return;
+    }
+    // Job kinds changed meaning in layout 2 (0.3.0, every fixer instead of Dino alone): drop 0.2.0's jobs.
+    if this.m_saveVersion < 2 {
+      this.DebugWipe();
     }
     this.TrimJobs();
     let na = Min(ArraySize(this.m_aJob), ArraySize(this.m_aMember));
@@ -185,7 +191,8 @@ public class FXOpsBook extends ScriptableSystem {
     ArrayPush(this.m_jCasualty, j.casualty);
     ArrayPush(this.m_jCasualtyKind, j.casualtyKind);
     ArrayPush(this.m_jCut, j.cut);
-    ArrayPush(this.m_jDinoCut, j.dinoCut);
+    ArrayPush(this.m_jFixerCut, j.fixerCut);
+    ArrayPush(this.m_jFixer, j.fixer);
     ArrayPush(this.m_jPlace, j.place);
     ArrayPush(this.m_jDistrict, j.district);
     ArrayPush(this.m_jX, j.x);
@@ -217,7 +224,8 @@ public class FXOpsBook extends ScriptableSystem {
     j.casualty = this.m_jCasualty[i];
     j.casualtyKind = this.m_jCasualtyKind[i];
     j.cut = this.m_jCut[i];
-    j.dinoCut = this.m_jDinoCut[i];
+    j.fixerCut = this.m_jFixerCut[i];
+    j.fixer = this.m_jFixer[i];
     j.place = this.m_jPlace[i];
     j.district = this.m_jDistrict[i];
     j.x = this.m_jX[i];
@@ -244,7 +252,8 @@ public class FXOpsBook extends ScriptableSystem {
     this.m_jCasualty[i] = j.casualty;
     this.m_jCasualtyKind[i] = j.casualtyKind;
     this.m_jCut[i] = j.cut;
-    this.m_jDinoCut[i] = j.dinoCut;
+    this.m_jFixerCut[i] = j.fixerCut;
+    this.m_jFixer[i] = j.fixer;
     this.m_jDue[i] = j.due;
     this.m_jExpires[i] = j.expires;
   }
@@ -301,7 +310,7 @@ public class FXOpsBook extends ScriptableSystem {
     ArrayErase(this.m_jPay, i); ArrayErase(this.m_jHours, i); ArrayErase(this.m_jNeed, i); ArrayErase(this.m_jFlags, i);
     ArrayErase(this.m_jState, i); ArrayErase(this.m_jQuest, i); ArrayErase(this.m_jBlock, i); ArrayErase(this.m_jVariant, i);
     ArrayErase(this.m_jOutcome, i); ArrayErase(this.m_jCasualty, i); ArrayErase(this.m_jCasualtyKind, i);
-    ArrayErase(this.m_jCut, i); ArrayErase(this.m_jDinoCut, i); ArrayErase(this.m_jPlace, i); ArrayErase(this.m_jDistrict, i);
+    ArrayErase(this.m_jCut, i); ArrayErase(this.m_jFixerCut, i); ArrayErase(this.m_jFixer, i); ArrayErase(this.m_jPlace, i); ArrayErase(this.m_jDistrict, i);
     ArrayErase(this.m_jX, i); ArrayErase(this.m_jY, i); ArrayErase(this.m_jZ, i); ArrayErase(this.m_jHasPos, i);
     ArrayErase(this.m_jExpires, i); ArrayErase(this.m_jDue, i);
   }
@@ -315,7 +324,8 @@ public class FXOpsBook extends ScriptableSystem {
     n = Min(n, Min(ArraySize(this.m_jQuest), ArraySize(this.m_jBlock)));
     n = Min(n, Min(ArraySize(this.m_jVariant), ArraySize(this.m_jOutcome)));
     n = Min(n, Min(ArraySize(this.m_jCasualty), ArraySize(this.m_jCasualtyKind)));
-    n = Min(n, Min(ArraySize(this.m_jCut), ArraySize(this.m_jDinoCut)));
+    n = Min(n, Min(ArraySize(this.m_jCut), ArraySize(this.m_jFixerCut)));
+    n = Min(n, ArraySize(this.m_jFixer));
     n = Min(n, Min(ArraySize(this.m_jPlace), ArraySize(this.m_jDistrict)));
     n = Min(n, Min(ArraySize(this.m_jX), ArraySize(this.m_jY)));
     n = Min(n, Min(ArraySize(this.m_jZ), ArraySize(this.m_jHasPos)));
@@ -324,7 +334,7 @@ public class FXOpsBook extends ScriptableSystem {
     ArrayResize(this.m_jPay, n); ArrayResize(this.m_jHours, n); ArrayResize(this.m_jNeed, n); ArrayResize(this.m_jFlags, n);
     ArrayResize(this.m_jState, n); ArrayResize(this.m_jQuest, n); ArrayResize(this.m_jBlock, n); ArrayResize(this.m_jVariant, n);
     ArrayResize(this.m_jOutcome, n); ArrayResize(this.m_jCasualty, n); ArrayResize(this.m_jCasualtyKind, n);
-    ArrayResize(this.m_jCut, n); ArrayResize(this.m_jDinoCut, n); ArrayResize(this.m_jPlace, n); ArrayResize(this.m_jDistrict, n);
+    ArrayResize(this.m_jCut, n); ArrayResize(this.m_jFixerCut, n); ArrayResize(this.m_jFixer, n); ArrayResize(this.m_jPlace, n); ArrayResize(this.m_jDistrict, n);
     ArrayResize(this.m_jX, n); ArrayResize(this.m_jY, n); ArrayResize(this.m_jZ, n); ArrayResize(this.m_jHasPos, n);
     ArrayResize(this.m_jExpires, n); ArrayResize(this.m_jDue, n);
   }
@@ -401,7 +411,7 @@ public class FXOpsBook extends ScriptableSystem {
     ArrayClear(this.m_jPay); ArrayClear(this.m_jHours); ArrayClear(this.m_jNeed); ArrayClear(this.m_jFlags);
     ArrayClear(this.m_jState); ArrayClear(this.m_jQuest); ArrayClear(this.m_jBlock); ArrayClear(this.m_jVariant);
     ArrayClear(this.m_jOutcome); ArrayClear(this.m_jCasualty); ArrayClear(this.m_jCasualtyKind);
-    ArrayClear(this.m_jCut); ArrayClear(this.m_jDinoCut); ArrayClear(this.m_jPlace); ArrayClear(this.m_jDistrict);
+    ArrayClear(this.m_jCut); ArrayClear(this.m_jFixerCut); ArrayClear(this.m_jFixer); ArrayClear(this.m_jPlace); ArrayClear(this.m_jDistrict);
     ArrayClear(this.m_jX); ArrayClear(this.m_jY); ArrayClear(this.m_jZ); ArrayClear(this.m_jHasPos);
     ArrayClear(this.m_jExpires); ArrayClear(this.m_jDue);
     ArrayClear(this.m_aJob); ArrayClear(this.m_aMember);

@@ -32,45 +32,6 @@ public class FXSettings {
   @runtimeProperty("ModSettings.description", "The key that opens the remote terminal.")
   public let terminalKey: EInputKey = EInputKey.IK_F7;
 
-  @runtimeProperty("ModSettings.mod", "Fixer")
-  @runtimeProperty("ModSettings.category", "General")
-  @runtimeProperty("ModSettings.displayName", "Count every district")
-  @runtimeProperty("ModSettings.description", "Gigs in any district count toward your reputation. Off, only City Center gigs count (there are only about nine).")
-  public let countAllDistricts: Bool = true;
-
-  // ---- Progression ----
-  @runtimeProperty("ModSettings.mod", "Fixer")
-  @runtimeProperty("ModSettings.category", "Progression")
-  @runtimeProperty("ModSettings.displayName", "Gigs to start recruiting")
-  @runtimeProperty("ModSettings.description", "Gigs finished before people start asking you for work.")
-  @runtimeProperty("ModSettings.min", "1")
-  @runtimeProperty("ModSettings.max", "40")
-  public let gigsForRecruiter: Int32 = 5;
-
-  @runtimeProperty("ModSettings.mod", "Fixer")
-  @runtimeProperty("ModSettings.category", "Progression")
-  @runtimeProperty("ModSettings.displayName", "Gigs to become a candidate")
-  @runtimeProperty("ModSettings.description", "Gigs finished before Dino starts watching you as a possible fixer.")
-  @runtimeProperty("ModSettings.min", "1")
-  @runtimeProperty("ModSettings.max", "80")
-  public let gigsForCandidate: Int32 = 10;
-
-  @runtimeProperty("ModSettings.mod", "Fixer")
-  @runtimeProperty("ModSettings.category", "Progression")
-  @runtimeProperty("ModSettings.displayName", "City Center gigs to become a candidate")
-  @runtimeProperty("ModSettings.description", "Of those, how many must be on Dino's turf (Downtown or Corpo Plaza). City Center has about nine gigs in all.")
-  @runtimeProperty("ModSettings.min", "0")
-  @runtimeProperty("ModSettings.max", "9")
-  public let cityCenterGigsForCandidate: Int32 = 3;
-
-  @runtimeProperty("ModSettings.mod", "Fixer")
-  @runtimeProperty("ModSettings.category", "Progression")
-  @runtimeProperty("ModSettings.displayName", "Street Cred to become a candidate")
-  @runtimeProperty("ModSettings.description", "The Street Cred level you need as well.")
-  @runtimeProperty("ModSettings.min", "1")
-  @runtimeProperty("ModSettings.max", "50")
-  public let streetCredForCandidate: Int32 = 30;
-
   // ---- Crew ----
   @runtimeProperty("ModSettings.mod", "Fixer")
   @runtimeProperty("ModSettings.category", "Crew")
@@ -90,41 +51,57 @@ public class FXSettings {
 
   @runtimeProperty("ModSettings.mod", "Fixer")
   @runtimeProperty("ModSettings.category", "Crew")
-  @runtimeProperty("ModSettings.displayName", "Crew size before you are a fixer")
-  @runtimeProperty("ModSettings.description", "How many people you can keep on while you are still a merc.")
+  @runtimeProperty("ModSettings.displayName", "Base crew size")
+  @runtimeProperty("ModSettings.description", "How many people you can keep on before alliances and turf add room (+1 per ally, +2 per fixer beaten).")
   @runtimeProperty("ModSettings.min", "1")
   @runtimeProperty("ModSettings.max", "8")
   public let rosterCapEarly: Int32 = 3;
 
-  // ---- Dino ----
+  // ---- Fixers ----
   @runtimeProperty("ModSettings.mod", "Fixer")
-  @runtimeProperty("ModSettings.category", "Dino")
-  @runtimeProperty("ModSettings.displayName", "Days until a guaranteed offer")
-  @runtimeProperty("ModSettings.description", "Once you are a candidate, Dino rolls each day whether to make his offer. After this many failed rolls it comes anyway.")
-  @runtimeProperty("ModSettings.min", "1")
-  @runtimeProperty("ModSettings.max", "30")
-  public let pityDays: Int32 = 7;
+  @runtimeProperty("ModSettings.category", "Fixers")
+  @runtimeProperty("ModSettings.displayName", "Share of a fixer's gigs")
+  @runtimeProperty("ModSettings.description", "Only where the game has no completion reward for a district: the share of that fixer's gigs you must finish before they reach out. Failed gigs count as finished.")
+  @runtimeProperty("ModSettings.min", "50")
+  @runtimeProperty("ModSettings.max", "100")
+  public let gigsPercent: Int32 = 100;
 
   @runtimeProperty("ModSettings.mod", "Fixer")
-  @runtimeProperty("ModSettings.category", "Dino")
-  @runtimeProperty("ModSettings.displayName", "Dino's cut")
-  @runtimeProperty("ModSettings.description", "The share Dino takes off the top of every job he hands you, in percent.")
+  @runtimeProperty("ModSettings.category", "Fixers")
+  @runtimeProperty("ModSettings.displayName", "Ally's cut")
+  @runtimeProperty("ModSettings.description", "The share an allied fixer takes off the top of every job they hand you, in percent.")
   @runtimeProperty("ModSettings.min", "0")
   @runtimeProperty("ModSettings.max", "60")
-  public let dinoCut: Int32 = 30;
+  public let allyCut: Int32 = 25;
 
   @runtimeProperty("ModSettings.mod", "Fixer")
-  @runtimeProperty("ModSettings.category", "Dino")
-  @runtimeProperty("ModSettings.displayName", "Jobs before Dino gets greedy")
-  @runtimeProperty("ModSettings.description", "Jobs done for Dino before he raises his cut. Refuse, and it's war.")
-  @runtimeProperty("ModSettings.min", "2")
-  @runtimeProperty("ModSettings.max", "30")
-  public let raiseAfterJobs: Int32 = 6;
+  @runtimeProperty("ModSettings.category", "Fixers")
+  @runtimeProperty("ModSettings.displayName", "Jobs per ally per day")
+  @runtimeProperty("ModSettings.description", "How many jobs each allied fixer puts on your board each day.")
+  @runtimeProperty("ModSettings.min", "1")
+  @runtimeProperty("ModSettings.max", "4")
+  public let allyJobsPerDay: Int32 = 1;
 
   @runtimeProperty("ModSettings.mod", "Fixer")
-  @runtimeProperty("ModSettings.category", "Dino")
+  @runtimeProperty("ModSettings.category", "Fixers")
+  @runtimeProperty("ModSettings.displayName", "Recruits from allies")
+  @runtimeProperty("ModSettings.description", "Daily chance in percent that each ally sends someone looking for work.")
+  @runtimeProperty("ModSettings.min", "0")
+  @runtimeProperty("ModSettings.max", "100")
+  public let allyLeadChance: Int32 = 15;
+
+  @runtimeProperty("ModSettings.mod", "Fixer")
+  @runtimeProperty("ModSettings.category", "Fixers")
+  @runtimeProperty("ModSettings.displayName", "Less heat on allied turf")
+  @runtimeProperty("ModSettings.description", "How much less NCPD Heat your jobs draw in an ally's district, in percent.")
+  @runtimeProperty("ModSettings.min", "0")
+  @runtimeProperty("ModSettings.max", "90")
+  public let allyHeatCut: Int32 = 30;
+
+  @runtimeProperty("ModSettings.mod", "Fixer")
+  @runtimeProperty("ModSettings.category", "Fixers")
   @runtimeProperty("ModSettings.displayName", "Retaliation chance")
-  @runtimeProperty("ModSettings.description", "During the war, the daily chance in percent that Dino hits back, before his strength is added.")
+  @runtimeProperty("ModSettings.description", "The daily chance in percent that a fixer at war with you hits back, before their strength is added. At most one fixer hits back a day.")
   @runtimeProperty("ModSettings.min", "0")
   @runtimeProperty("ModSettings.max", "100")
   public let retaliationChance: Int32 = 30;
@@ -141,7 +118,7 @@ public class FXSettings {
   @runtimeProperty("ModSettings.mod", "Fixer")
   @runtimeProperty("ModSettings.category", "Jobs")
   @runtimeProperty("ModSettings.displayName", "City jobs on the board")
-  @runtimeProperty("ModSettings.description", "Once you run City Center: how many of the game's own gigs, NCPD jobs, psychos and car jobs your crew can work each day.")
+  @runtimeProperty("ModSettings.description", "On turf you've taken: how many of the game's own gigs, NCPD jobs, psychos and car jobs your crew can work at a time.")
   @runtimeProperty("ModSettings.min", "0")
   @runtimeProperty("ModSettings.max", "16")
   public let siteJobs: Int32 = 8;
@@ -179,7 +156,7 @@ public class FXSettings {
   @runtimeProperty("ModSettings.mod", "Fixer")
   @runtimeProperty("ModSettings.category", "Jobs")
   @runtimeProperty("ModSettings.displayName", "Turf income per block")
-  @runtimeProperty("ModSettings.description", "Eddies each held City Center block pays you per day once you run City Center.")
+  @runtimeProperty("ModSettings.description", "Eddies each block you hold pays you per day.")
   @runtimeProperty("ModSettings.min", "0")
   @runtimeProperty("ModSettings.max", "2000")
   public let blockIncome: Int32 = 250;
@@ -236,16 +213,14 @@ public abstract class FXSettingsBridge {
   public static func Debug() -> Bool = FXSettingsBridge.Get().debugMode;
 
   // Clamped reads: a hand-edited settings file can't push a value somewhere the rules break.
-  public static func GigsForRecruiter() -> Int32 = Max(1, FXSettingsBridge.Get().gigsForRecruiter);
-  public static func GigsForCandidate() -> Int32 = Max(1, FXSettingsBridge.Get().gigsForCandidate);
-  public static func CityCenterGigsForCandidate() -> Int32 = Clamp(FXSettingsBridge.Get().cityCenterGigsForCandidate, 0, 9);
-  public static func StreetCredForCandidate() -> Int32 = Clamp(FXSettingsBridge.Get().streetCredForCandidate, 1, 50);
   public static func RecruitChance() -> Int32 = Clamp(FXSettingsBridge.Get().recruitChance, 0, 100);
   public static func LeadDays() -> Int32 = Clamp(FXSettingsBridge.Get().leadDays, 1, 14);
   public static func RosterCapEarly() -> Int32 = Clamp(FXSettingsBridge.Get().rosterCapEarly, 1, 8);
-  public static func PityDays() -> Int32 = Clamp(FXSettingsBridge.Get().pityDays, 1, 30);
-  public static func DinoCut() -> Int32 = Clamp(FXSettingsBridge.Get().dinoCut, 0, 60);
-  public static func RaiseAfterJobs() -> Int32 = Clamp(FXSettingsBridge.Get().raiseAfterJobs, 2, 30);
+  public static func FallbackPercent() -> Int32 = Clamp(FXSettingsBridge.Get().gigsPercent, 50, 100);
+  public static func AllyCut() -> Int32 = Clamp(FXSettingsBridge.Get().allyCut, 0, 60);
+  public static func AllyJobsPerDay() -> Int32 = Clamp(FXSettingsBridge.Get().allyJobsPerDay, 1, 4);
+  public static func AllyLeadChance() -> Int32 = Clamp(FXSettingsBridge.Get().allyLeadChance, 0, 100);
+  public static func AllyHeatCut() -> Int32 = Clamp(FXSettingsBridge.Get().allyHeatCut, 0, 90);
   public static func RetaliationChance() -> Int32 = Clamp(FXSettingsBridge.Get().retaliationChance, 0, 100);
   public static func JobsPerDay() -> Int32 = Clamp(FXSettingsBridge.Get().jobsPerDay, 1, 8);
   public static func SiteJobs() -> Int32 = Clamp(FXSettingsBridge.Get().siteJobs, 0, 16);
